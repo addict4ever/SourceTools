@@ -24,4 +24,4 @@ copies or substantial portions of the Software.
 
 */ 
 
-cl /Fe:testtar.exe /I"C:\temp\vcpkg\installed\x86-windows\include" /EHsc /std:c++17 /I"C:\temp\vcpkg\scripts\buildsystems" /DCMAKE_TOOLCHAIN_FILE="C:\temp\vcpkg\scripts\buildsystems\vcpkg.cmake" user32.lib gdi32.lib testtar.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows\lib"
+cl /Fe:testtar.exe /I"C:\temp\vcpkg\installed\x86-windows\include" /EHsc /std:c++17 /I"C:\temp\vcpkg\scripts\buildsystems" /DCMAKE_TOOLCHAIN_FILE="C:\temp\vcpkg\scripts\buildsystems\vcpkg.cmake" user32.lib gdi32.lib main.cpp fileUtils.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows\lib"
