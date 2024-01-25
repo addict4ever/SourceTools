@@ -3,6 +3,8 @@
 #include <chrono>
 #include <ctime>
 #include <sstream>
+#include <Windows.h>
+#include <tchar.h>
 
 std::string getHostName() {
     std::string hostname;
