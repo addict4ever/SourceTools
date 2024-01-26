@@ -18,7 +18,7 @@ std::string getHostName() {
     return hostname;
 }
 
-std::string generateTimestamp() {
+std::string generateTimestamp() {	
     auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::tm localTime;
     if (localtime_s(&localTime, &now) != 0) {
@@ -37,11 +37,40 @@ std::string generateTimestamp() {
 
 void deleteFiles(const char* filesToDeletePattern) {
     try {
-        for (const auto& entry : std::filesystem::directory_iterator(filesToDeletePattern)) {
-            std::filesystem::remove(entry.path());
-            std::cout << "Fichier supprimé : " << entry.path() << std::endl;
+        std::string pattern(filesToDeletePattern);
+        for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+            if (entry.path().extension() == ".bmp" && std::filesystem::is_regular_file(entry)) {
+                std::filesystem::remove(entry.path());
+                std::cout << "Fichier supprimé : " << entry.path() << std::endl;
+            }
         }
     } catch (const std::filesystem::filesystem_error& e) {
         std::cerr << "Erreur lors de la suppression des fichiers : " << e.what() << std::endl;
+    }
+}
+
+void compressFilesInCurrentDirectory(const char* outputArchiveNamePattern) {
+    try {
+        std::string hostname = getHostName();
+        std::string timestamp = generateTimestamp();
+        std::string outputArchiveName = hostname + "_" + timestamp + ".tar.gz";
+
+        std::filesystem::path currentDirectory = std::filesystem::current_path();
+        std::filesystem::path outputArchivePath = currentDirectory / outputArchiveName;
+
+        std::filesystem::create_directories(outputArchivePath.parent_path());
+
+        std::string command = "tar czvf \"" + outputArchivePath.string() + "\" " + outputArchiveNamePattern;
+
+
+        if (std::system(command.c_str()) != 0) {
+            std::cerr << "Erreur lors de la compression des fichiers." << std::endl;
+            return;
+        }
+
+        std::cout << "Compression réussie. Archive créée : " << outputArchivePath << std::endl;
+
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Erreur lors de la compression des fichiers : " << e.what() << std::endl;
     }
 }
