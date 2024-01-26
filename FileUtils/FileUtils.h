@@ -5,3 +5,4 @@
 std::string getHostName();
 std::string generateTimestamp();
 void deleteFiles(const char* filesToDeletePattern);
+void compressFilesInCurrentDirectory(const char* outputArchiveNamePattern);
