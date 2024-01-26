@@ -9,6 +9,8 @@ int main() {
     std::cout << "Archive créée : " << outputArchiveName << std::endl;
 
     const char* outputArchiveNamePatternBMP = "*.bmp";
+
+    compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
     deleteFiles(outputArchiveNamePatternBMP);
 
     return 0;
