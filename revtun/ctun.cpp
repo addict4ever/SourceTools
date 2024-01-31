@@ -6,23 +6,40 @@
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
-#include <winsock2.h>  
-#include <ws2tcpip.h>  
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <cxxopts.hpp>
 
-#pragma comment(lib, "ws2_32.lib") 
+#pragma comment(lib, "ws2_32.lib")
 
 constexpr int BUFFER_SIZE = 20000;
+
+bool parseAddress(const std::string& addressStr, std::pair<std::string, int>& address) {
+    size_t pos = addressStr.find(':');
+    if (pos == std::string::npos) {
+        return false;  // Le format de l'adresse est incorrect
+    }
+
+    address.first = addressStr.substr(0, pos);
+    try {
+        address.second = std::stoi(addressStr.substr(pos + 1));
+    } catch (const std::exception& e) {
+        return false;  // Échec de la conversion du port en entier
+    }
+
+    return true;
+}
+
 
 class TunnelingClient {
 public:
     TunnelingClient(const std::pair<std::string, int>& tunnelAddress, const std::pair<std::string, int>& forwardAddress)
         : tunnelAddress(tunnelAddress), forwardAddress(forwardAddress) {
-
             if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
                 throw std::runtime_error("Failed to initialize Winsock");
             }
         }
-        
+
     void establishConnection(std::pair<std::string, int>& address, SOCKET& clientSocket) {
         clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -43,7 +60,6 @@ public:
         }
     }
 
-
     void closeAndExit() {
         closeConnections();
         std::cout << "\nStopped correctly" << std::endl;
@@ -51,11 +67,10 @@ public:
     }
 
     void tunnel2forward() {
-        while (true) {
-            try {
+        try {
+            while (true) {
                 char data[BUFFER_SIZE];
                 int bytesRead = recv(tunnelSocket, data, BUFFER_SIZE, 0);
-
 
                 if (bytesRead <= 0) {
                     throw std::runtime_error("Tunnel has dropped, this shouldn't happen, restart RPPF.");
@@ -65,10 +80,11 @@ public:
 
                 std::lock_guard<std::mutex> lock(sendingSocketMutex);
                 send(forwardSocket, data, bytesRead, 0);
-
-            } catch (const std::exception& e) {
-                std::cerr << "Exception in tunnel2forward: " << e.what() << std::endl;
             }
+
+        } catch (const std::exception& e) {
+            std::cerr << "Exception in tunnel2forward: " << e.what() << std::endl;
+            closeAndExit();
         }
     }
 
@@ -139,10 +155,11 @@ public:
             shutdown(forwardSocket, SD_BOTH);
             closesocket(forwardSocket);
         }
+
+        WSACleanup();
     }
 
 private:
-    WSADATA wsaData; 
     std::pair<std::string, int> tunnelAddress;
     std::pair<std::string, int> forwardAddress;
     SOCKET tunnelSocket = INVALID_SOCKET;
@@ -152,14 +169,47 @@ private:
     std::chrono::steady_clock::time_point lastDataReceivedTime;
     std::thread tunnel2forwardThread;
     std::thread forward2tunnelThread;
+    WSADATA wsaData;
 };
 
-int main() {
-    std::pair<std::string, int> tunnelAddress("16.16.16.114", 10000);
-    std::pair<std::string, int> forwardAddress("127.0.0.1", 3389);
+int main(int argc, char* argv[]) {
+    try {
+        cxxopts::Options options("TunnelingClient", "Tunneling Client for Windows");
 
-    TunnelingClient tunnelingClient(tunnelAddress, forwardAddress);
-    tunnelingClient.startTunneling();
+        options.add_options()
+            ("tunnel", "Tunnel address in the format 'host:port'", cxxopts::value<std::string>()->default_value("16.16.16.114:10000"))
+            ("forward", "Forward address in the format 'host:port'", cxxopts::value<std::string>()->default_value("127.0.0.1:3389"))
+            ("h,help", "Print help");
+
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help")) {
+            std::cout << options.help() << std::endl;
+            return 0;
+        }
+
+        std::pair<std::string, int> tunnelAddress;
+        std::pair<std::string, int> forwardAddress;
+
+        // Validate and parse tunnel address
+        if (!parseAddress(result["tunnel"].as<std::string>(), tunnelAddress)) {
+            std::cerr << "Invalid tunnel address format. Please use the format 'host:port'." << std::endl;
+            return 1;
+        }
+
+        // Validate and parse forward address
+        if (!parseAddress(result["forward"].as<std::string>(), forwardAddress)) {
+            std::cerr << "Invalid forward address format. Please use the format 'host:port'." << std::endl;
+            return 1;
+        }
+
+        TunnelingClient tunnelingClient(tunnelAddress, forwardAddress);
+        tunnelingClient.startTunneling();
+
+    } catch (const std::exception& e) {
+        std::cerr << "An exception occurred: " << e.what() << std::endl;
+        return 1;
+    }
 
     return 0;
 }
