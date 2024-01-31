@@ -19,3 +19,5 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 
 */
+
+cl /Fe:ctun.exe /I"C:\test\vcpkg\installed\x64-windows\include" /std:c++latest /EHsc user32.lib gdi32.lib libcurl.lib ctun.cpp /link /LIBPATH:"C:\test\vcpkg\installed\x64-windows\lib" ws2_32.lib
