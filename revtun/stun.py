@@ -2,7 +2,10 @@ import socket
 import threading
 import time
 import argparse
-  
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class TunnelManager:
     def __init__(self, tunnel_hostname, tunnel_port, forward_hostname, forward_port, buffer_size=20000):
@@ -21,7 +24,7 @@ class TunnelManager:
         server_socket.bind(address)
         server_socket.listen()
         return server_socket
-    
+
     def reset_connections(self):
         with self.rppf_conn_lock:
             try:
@@ -35,17 +38,16 @@ class TunnelManager:
 
                 # Reset connections
                 tunnel_address = (self.tunnel_hostname, self.tunnel_port)
-                self.tunnel_socket = self.make_listening_server(tunnel_address)
-                self.tunnel_conn, _ = self.tunnel_socket.accept()
+                with self.make_listening_server(tunnel_address) as tunnel_socket:
+                    self.tunnel_conn, _ = tunnel_socket.accept()
 
                 rppf_address = (self.forward_hostname, self.forward_port)
-                self.rppf_socket = self.make_listening_server(rppf_address)
-
-                with self.rppf_conn_lock:
-                    self.rppf_conn, _ = self.rppf_socket.accept()
+                with self.make_listening_server(rppf_address) as rppf_socket:
+                    with self.rppf_conn_lock:
+                        self.rppf_conn, _ = rppf_socket.accept()
 
             except Exception as e:
-                print(f"Error resetting connections: {e}")
+                logger.error(f"Error resetting connections: {e}")
                 self.close_connections()
 
     def tunnel2rppf(self):
@@ -53,17 +55,17 @@ class TunnelManager:
             try:
                 data = self.tunnel_conn.recv(self.buffer_size)
                 if not data:
-                    print("Tunnel connection interrupted. Closing connections and stopping the program.")
+                    logger.info("Tunnel connection interrupted. Closing connections and stopping the program.")
                     self.close_connections()
                     break
 
                 with self.rppf_conn_lock:
                     self.rppf_conn.sendall(data)
-                    print(f"Data sent to RPPF: {data}")
+                    logger.info(f"Data sent to RPPF: {data}")
 
             except Exception as e:
-                print(f"Error communicating with RPPF: {e}")
-                print("Closing connections and stopping the program.")
+                logger.error(f"Error communicating with RPPF: {e}")
+                logger.info("Closing connections and stopping the program.")
                 self.close_connections()
                 break
 
@@ -72,99 +74,113 @@ class TunnelManager:
             try:
                 data = self.rppf_conn.recv(self.buffer_size)
                 if not data:
-                    print("Connection with RPPF interrupted. Closing connections and stopping the program.")
+                    logger.info("Connection with RPPF interrupted. Closing connections and stopping the program.")
                     self.close_connections()
                     break
 
                 self.tunnel_conn.sendall(data)
-                print(f"Data received from RPPF: {data}")
+                logger.info(f"Data received from RPPF: {data}")
 
             except Exception as e:
-                print(f"Error communicating with the tunnel: {e}")
-                print("Closing connections and stopping the program.")
+                logger.error(f"Error communicating with the tunnel: {e}")
+                logger.info("Closing connections and stopping the program.")
                 self.close_connections()
                 break
 
     def start_tunneling(self):
         try:
-            print("Waiting for incoming tunnel connection...")
+            logger.info("Waiting for incoming tunnel connection...")
             tunnel_address = (self.tunnel_hostname, self.tunnel_port)
-            self.tunnel_socket = self.make_listening_server(tunnel_address)
-            self.tunnel_conn, _ = self.tunnel_socket.accept()
-            print("Tunnel established")
+            with self.make_listening_server(tunnel_address) as tunnel_socket:
+                self.tunnel_conn, _ = tunnel_socket.accept()
+                logger.info("Tunnel established")
 
-            print("Opening RPPF listening service...")
+            logger.info("Opening RPPF listening service...")
             rppf_address = (self.forward_hostname, self.forward_port)
-            self.rppf_socket = self.make_listening_server(rppf_address)
-            print(f"RPPF service opened on {str(rppf_address)}")
-            print("Ready to transfer data")
+            with self.make_listening_server(rppf_address) as rppf_socket:
+                logger.info(f"RPPF service opened on {str(rppf_address)}")
+                logger.info("Ready to transfer data")
 
-            # Start threads for incoming and outgoing traffic
-            tunnel2rppf_t = threading.Thread(target=self.tunnel2rppf)
-            rppf2tunnel_t = threading.Thread(target=self.rppf2tunnel)
-            tunnel2rppf_t.daemon = True
-            rppf2tunnel_t.daemon = True
+                # Start threads for incoming and outgoing traffic
+                tunnel2rppf_t = threading.Thread(target=self.tunnel2rppf)
+                rppf2tunnel_t = threading.Thread(target=self.rppf2tunnel)
+                tunnel2rppf_t.daemon = True
+                rppf2tunnel_t.daemon = True
 
-            # Start threads only after initializing the connection with RPPF
-            with self.rppf_conn_lock:
-                self.rppf_conn, _ = self.rppf_socket.accept()
+                # Start threads only after initializing the connection with RPPF
+                with self.rppf_conn_lock:
+                    self.rppf_conn, _ = rppf_socket.accept()
 
-            tunnel2rppf_t.start()
-            rppf2tunnel_t.start()
+                tunnel2rppf_t.start()
+                rppf2tunnel_t.start()
 
-            while True:
-                try:
-                    tunnel2rppf_t.join(1)
-                    rppf2tunnel_t.join(1)
+                while True:
+                    try:
+                        tunnel2rppf_t.join(1)
+                        rppf2tunnel_t.join(1)
 
-                    if not tunnel2rppf_t.is_alive() or not rppf2tunnel_t.is_alive():
-                        print("One of the threads was interrupted. Attempting to reset...")
-                        self.reset_connections()
-                        time.sleep(1)
+                        if not tunnel2rppf_t.is_alive() or not rppf2tunnel_t.is_alive():
+                            logger.info("One of the threads was interrupted. Attempting to reset...")
+                            self.reset_connections()
+                            time.sleep(1)
 
-                except KeyboardInterrupt:
-                    self.close_connections()
-                    print('\nClosing connections')
-                    print('\nShutdown initiated')
-                    break
+                    except KeyboardInterrupt:
+                        self.close_connections()
+                        logger.info('\nClosing connections')
+                        logger.info('\nShutdown initiated')
+                        break
 
         except Exception as e:
-            print('An exception occurred')
-            print(e)
-            print('Attempting to close sockets')
+            logger.error('An exception occurred')
+            logger.error(e)
+            logger.error('Attempting to close sockets')
             self.close_connections()
 
     def close_connections(self):
-        self.tunnel_socket.shutdown(socket.SHUT_RDWR)
-        self.tunnel_socket.close()
-        self.rppf_socket.shutdown(socket.SHUT_RDWR)
-        self.rppf_socket.close()
+        if hasattr(self, 'tunnel_socket'):
+            self.tunnel_socket.shutdown(socket.SHUT_RDWR)
+            self.tunnel_socket.close()
+        if hasattr(self, 'rppf_socket'):
+            self.rppf_socket.shutdown(socket.SHUT_RDWR)
+            self.rppf_socket.close()
         exit()
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Tunnel Manager for forwarding data between a tunnel and a remote port.")
+    parser = argparse.ArgumentParser(description='Tunneling Manager')
+    parser.add_argument('--tunnel', default='16.16.16.114:10000', help='Tunnel address in the format "host:port"')
+    parser.add_argument('--forward', default='127.0.0.1:3389', help='Forward address in the format "host:port"')
 
-    # Define command-line arguments
-    parser.add_argument('--tunnel-hostname', default='16.16.16.114', help="Hostname for the tunnel (default: 16.16.16.114)")
-    parser.add_argument('--tunnel-port', type=int, default=10000, help="Port for the tunnel (default: 10000)")
-    parser.add_argument('--forward-hostname', default='16.16.16.114', help="Hostname for forwarding (default: 16.16.16.114)")
-    parser.add_argument('--forward-port', type=int, default=3389, help="Port for forwarding (default: 3389)")
+    args = parser.parse_args()
 
-    return parser.parse_args()
+    # Validate and parse the tunnel and forward addresses
+    try:
+        tunnel_address_parts = args.tunnel.split(':')
+        forward_address_parts = args.forward.split(':')
+
+        tunnel_hostname = tunnel_address_parts[0]
+        tunnel_port = int(tunnel_address_parts[1])
+
+        forward_hostname = forward_address_parts[0]
+        forward_port = int(forward_address_parts[1])
+
+        return tunnel_hostname, tunnel_port, forward_hostname, forward_port
+
+    except (ValueError, IndexError):
+        parser.error("Invalid address format. Please use the format 'host:port' for both --tunnel and --forward.")
 
 if __name__ == "__main__":
     # Parse command-line arguments
-    args = parse_arguments()
+    tunnel_hostname, tunnel_port, forward_hostname, forward_port = parse_arguments()
 
     # Usage with command-line arguments
     try:
         tunnel_manager = TunnelManager(
-            tunnel_hostname=args.tunnel_hostname,
-            tunnel_port=args.tunnel_port,
-            forward_hostname=args.forward_hostname,
-            forward_port=args.forward_port
+            tunnel_hostname=tunnel_hostname,
+            tunnel_port=tunnel_port,
+            forward_hostname=forward_hostname,
+            forward_port=forward_port
         )
         tunnel_manager.start_tunneling()
 
     except Exception as e:
-        print(e)
+        logger.error(e)
