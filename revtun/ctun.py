@@ -3,6 +3,8 @@ import time
 import sys
 import threading
 import datetime
+import argparse
+import re
 
 reset_counter = 0
 MAX_RESET_COUNT = 10
@@ -22,12 +24,11 @@ class TunnelingClient:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        while True:
-            try:
-                client_socket.connect(address)
-                break
-            except:
-                time.sleep(1)
+        try:
+            client_socket.connect(address)
+        except socket.error as e:
+            print(f"Error connecting to {address}: {e}")
+            raise
 
         return client_socket
 
@@ -132,8 +133,47 @@ class TunnelingClient:
             self.forward_socket.shutdown(socket.SHUT_RDWR)
             self.forward_socket.close()
 
-tunnel_address = ('16.16.16.114', 10000)
-forward_address = ('127.0.0.1', 3389)
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Tunneling Client')
+    parser.add_argument('--tunnel', default='16.16.16.114:10000', help='Tunnel address in the format "host:port"')
+    parser.add_argument('--forward', default='127.0.0.1:3389', help='Forward address in the format "host:port"')
 
-tunneling_client = TunnelingClient(tunnel_address, forward_address)
-tunneling_client.start_tunneling()
+    args = parser.parse_args()
+
+    # Validate tunnel and forward addresses
+    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b', args.tunnel):
+        print("Invalid tunnel address format. Please use the format 'host:port'.")
+        sys.exit(1)
+
+    if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b', args.forward):
+        print("Invalid forward address format. Please use the format 'host:port'.")
+        sys.exit(1)
+
+    return args
+
+
+if __name__ == "__main__":
+    try:
+        args = parse_arguments()
+
+        tunnel_host, tunnel_port = args.tunnel.split(':')
+        forward_host, forward_port = args.forward.split(':')
+
+        tunnel_address = (tunnel_host, int(tunnel_port))
+        forward_address = (forward_host, int(forward_port))
+
+        tunneling_client = TunnelingClient(tunnel_address, forward_address)
+        tunneling_client.start_tunneling()
+
+    except KeyboardInterrupt:
+        print('\nProgram interrupted by user.')
+        tunneling_client.stop_threads()
+        tunneling_client.close_connections()
+        sys.exit(0)
+
+    except Exception as e:
+        print(f'An exception occurred: {e}')
+        print('Trying to close sockets')
+        tunneling_client.stop_threads()
+        tunneling_client.close_connections()
+        sys.exit(1)
