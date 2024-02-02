@@ -1,7 +1,7 @@
 #include "ctun.h"
 
 TunnelingClient::TunnelingClient(const std::pair<std::string, int>& tunnelAddress, const std::pair<std::string, int>& forwardAddress)
-    : tunnelAddress(tunnelAddress), forwardAddress(forwardAddress), tunnelSocket(INVALID_SOCKET), forwardSocket(INVALID_SOCKET) {
+    : tunnelAddress(tunnelAddress), forwardAddress(forwardAddress), tunnelSocket(INVALID_SOCKET), forwardSocket(INVALID_SOCKET), tunnelsClosed(false) {
     
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         throw std::runtime_error("Failed to initialize Winsock");
@@ -41,7 +41,9 @@ void TunnelingClient::tunnel2forward() {
             int bytesRead = recv(tunnelSocket, data, BUFFER_SIZE, 0);
 
             if (bytesRead <= 0) {
-                throw std::runtime_error("Tunnel has dropped, this shouldn't happen, restart RPPF.");
+                std::cerr << "Tunnel has dropped; this shouldn't happen. Restart RPPF." << std::endl;
+                tunnelsClosed = true;
+                return;
             }
 
             lastDataReceivedTime = std::chrono::steady_clock::now();
@@ -51,12 +53,11 @@ void TunnelingClient::tunnel2forward() {
 
         } catch (const std::exception& e) {
             std::cerr << "Exception in tunnel2forward: " << e.what() << std::endl;
-
-            std::exit(1);
+            tunnelsClosed = true;
+            return;
         }
     }
 }
-
 
 void TunnelingClient::forward2tunnel() {
     while (true) {
@@ -65,13 +66,17 @@ void TunnelingClient::forward2tunnel() {
             int bytesRead = recv(forwardSocket, data, BUFFER_SIZE, 0);
 
             if (bytesRead <= 0) {
-                continue;
+                std::cerr << "Forward connection has dropped. Exiting forward2tunnel." << std::endl;
+                tunnelsClosed = true;
+                return;
             }
 
             send(tunnelSocket, data, bytesRead, 0);
 
         } catch (const std::exception& e) {
             std::cerr << "Exception in forward2tunnel: " << e.what() << std::endl;
+            tunnelsClosed = true;
+            return;
         }
     }
 }
@@ -101,9 +106,6 @@ void TunnelingClient::startTunneling() {
         tunnel2forwardThread = std::thread(&TunnelingClient::tunnel2forward, this);
         forward2tunnelThread = std::thread(&TunnelingClient::forward2tunnel, this);
 
-        tunnel2forwardThread.join();
-        forward2tunnelThread.join();
-
     } catch (const std::exception& e) {
         std::cerr << "An exception occurred" << std::endl;
         std::cerr << e.what() << std::endl;
@@ -111,7 +113,8 @@ void TunnelingClient::startTunneling() {
         stopThreads();
         closeConnections();
         std::cout << "\nStopped correctly" << std::endl;
-        std::exit(0);
+
+        tunnelsClosed = true;
     }
 }
 
@@ -125,4 +128,20 @@ void TunnelingClient::closeConnections() {
         shutdown(forwardSocket, SD_BOTH);
         closesocket(forwardSocket);
     }
+}
+
+void TunnelingClient::closeTunnels() {
+    std::cout << "Closing tunnels..." << std::endl;
+
+    stopThreads(); 
+
+    closeConnections(); 
+
+    tunnelsClosed = true;  
+
+    std::cout << "Tunnels closed." << std::endl;
+}
+
+bool TunnelingClient::areTunnelsClosed() const {
+    return tunnelsClosed;
 }
