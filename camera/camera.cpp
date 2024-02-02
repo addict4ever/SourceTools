@@ -1,5 +1,4 @@
-#include <Windows.h>
-#include <dshow.h>
+#include "camera.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -71,7 +70,7 @@ void detectCameras() {
     CoUninitialize();
 }
 
-void recordVideo(int cameraIndex) {
+void recordVideo(int cameraIndex, std::chrono::seconds recordDuration) {
     CoInitialize(NULL);
 
     ICreateDevEnum* deviceEnumerator = NULL;
@@ -114,11 +113,9 @@ void recordVideo(int cameraIndex) {
                                                 localtime_s(&timeinfo, &in_time_t);
                                                 char buffer[80];
                                                 strftime(buffer, sizeof(buffer), "%Y%m%d_%H%M%S", &timeinfo);
-                                                std::wstring filename = GetHostName() + L"_" + std::wstring(buffer, buffer + strlen(buffer));
+                                                std::wstring filename = GetHostName() + L"_" + std::wstring(buffer, buffer + strlen(buffer)) + L".avi";
 
-                                                std::wstring fullFilePath = L".\\" + filename + L".avi";
-
-                                                hr = captureGraphBuilder->SetOutputFileName(&MEDIASUBTYPE_Avi, fullFilePath.c_str(), &aviMuxFilter, NULL);
+                                                hr = captureGraphBuilder->SetOutputFileName(&MEDIASUBTYPE_Avi, filename.c_str(), &aviMuxFilter, NULL);
                                                 if (SUCCEEDED(hr)) {
                                                     hr = captureGraphBuilder->RenderStream(NULL, NULL, captureFilter, NULL, aviMuxFilter);
                                                     if (SUCCEEDED(hr)) {
@@ -127,7 +124,7 @@ void recordVideo(int cameraIndex) {
                                                         if (SUCCEEDED(hr)) {
                                                             hr = mediaControl->Run();
                                                             if (SUCCEEDED(hr)) {
-                                                                std::this_thread::sleep_for(std::chrono::seconds(5));
+                                                                std::this_thread::sleep_for(recordDuration);
                                                             }
                                                             mediaControl->Release();
                                                         }
@@ -157,16 +154,4 @@ void recordVideo(int cameraIndex) {
 
     deviceEnumerator->Release();
     CoUninitialize();
-}
-
-int main() {
-    detectCameras();
-
-    std::cout << "Choose the camera number you want to record: ";
-    int cameraIndex;
-    std::cin >> cameraIndex;
-
-    recordVideo(cameraIndex);
-
-    return 0;
 }
