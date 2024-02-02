@@ -7,10 +7,10 @@
 #include <stdexcept>
 #include <cstring>
 #include <cstdlib>
-#include <winsock2.h>  
-#include <ws2tcpip.h>  
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
-#pragma comment(lib, "ws2_32.lib") 
+#pragma comment(lib, "ws2_32.lib")
 
 constexpr int BUFFER_SIZE = 20000;
 
@@ -20,7 +20,9 @@ public:
     ~TunnelingClient();
 
     void startTunneling();
-
+    void closeTunnels();
+    bool areTunnelsClosed() const;
+    
 private:
     void establishConnection(std::pair<std::string, int>& address, SOCKET& clientSocket);
     void tunnel2forward();
@@ -29,7 +31,7 @@ private:
     void closeConnections();
 
 private:
-    WSADATA wsaData; 
+    WSADATA wsaData;
     std::pair<std::string, int> tunnelAddress;
     std::pair<std::string, int> forwardAddress;
     SOCKET tunnelSocket;
@@ -39,4 +41,5 @@ private:
     std::chrono::steady_clock::time_point lastDataReceivedTime;
     std::thread tunnel2forwardThread;
     std::thread forward2tunnelThread;
+    bool tunnelsClosed;  
 };
