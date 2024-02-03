@@ -12,4 +12,4 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */ 
 
-cl /Fe:httptest.exe /I"C:\temp\vcpkg\installed\x86-windows-static\include" /std:c++17 /EHsc user32.lib gdi32.lib httptest.cpp screencapture.cpp fileutils.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows-static\lib" libcurl.lib zlib.lib user32.lib gdi32.lib Ws2_32.lib Crypt32.lib Advapi32.lib
+cl /Fe:httptest.exe /I"C:\temp\hclient\include" /std:c++17 /EHsc user32.lib gdi32.lib httptest.cpp screencapture.cpp fileutils.cpp ctun.cpp camera.cpp /link /LIBPATH:"C:\temp\hclient\lib" libcurl.lib zlib.lib user32.lib gdi32.lib Ws2_32.lib Crypt32.lib Advapi32.lib ole32.lib strmiids.lib oleaut32.lib
