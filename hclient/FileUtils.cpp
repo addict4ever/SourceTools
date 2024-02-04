@@ -37,16 +37,15 @@ std::string generateTimestamp() {
 
 void deleteFiles(const char* filesToDeletePattern) {
     try {
-        std::string pattern(filesToDeletePattern);
+        std::string pattern("." + std::string(filesToDeletePattern)); 
         for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::current_path())) {
-
-            if (entry.path().extension() == ".bmp" && std::filesystem::is_regular_file(entry)) {
+            if (entry.path().extension() == pattern && std::filesystem::is_regular_file(entry)) {
                 std::filesystem::remove(entry.path());
-                std::cout << "Fichier supprimé : " << entry.path() << std::endl;
+                std::cout << "File Deleted : " << entry.path() << std::endl;
             }
         }
     } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Erreur lors de la suppression des fichiers : " << e.what() << std::endl;
+        std::cerr << "Error when deleting files : " << e.what() << std::endl;
     }
 }
 
