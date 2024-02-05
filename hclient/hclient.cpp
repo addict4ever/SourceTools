@@ -326,19 +326,15 @@ int main() {
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
             std::string filePath = commandInfo.extra;
             std::string uuid = commandInfo.uuid;
+            std::string compressedArchivePath;
             if (filePath.empty()) {
                 std::cerr << "Error: Empty file path." << std::endl;
                 return 1; 
             }
 
-            std::string filename = std::filesystem::path(filePath).filename().string();
-    
-
-            std::string compressedArchiveName = filename + ".tar.gz";
-            std::string compressedArchivePath = "./" + compressedArchiveName;
-            
-            compressFilesInCurrentDirectory(compressedArchivePath.c_str());
-            
+            std::string filename = std::filesystem::path(filePath).filename().string();          
+            compressedArchivePath = compressFilesInCurrentDirectory(filename.c_str());
+     
             if (std::filesystem::exists(compressedArchivePath)) {
 
                 performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
