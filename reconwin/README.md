@@ -24,4 +24,4 @@ int main() {
 
 COMPILE : 
 
-cl /Fe:stun.exe /I"C:\temp\vcpkg\installed\x86-windows-static\include" /std:c++latest /EHsc user32.lib gdi32.lib libcurl.lib ctun.cpp main.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows-static\lib" ws2_32.lib
+cl /Fe:reconwin.exe /I"C:\temp\vcpkg\installed\x86-windows-static\include" /std:c++latest /EHsc user32.lib gdi32.lib libcurl.lib reconwin.cpp main.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows-static\lib" ws2_32.lib
