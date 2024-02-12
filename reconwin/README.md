@@ -13,4 +13,4 @@ USAGE :
 
 COMPILE : 
 
-cl /Fe:reconwin.exe /I"C:\temp\vcpkg\installed\x86-windows-static\include" /std:c++latest /EHsc user32.lib gdi32.lib libcurl.lib reconwin.cpp main.cpp /link /LIBPATH:"C:\temp\vcpkg\installed\x86-windows-static\lib" ws2_32.lib
+cl /Fe:reconwin.exe /I"C:\temp\hclient\include" /std:c++17 /EHsc user32.lib gdi32.lib reconwin.cpp main.cpp /link /LIBPATH:"C:\temp\hclient\lib" libcurl.lib zlib.lib user32.lib gdi32.lib Ws2_32.lib Advapi32.lib Netapi32.lib
