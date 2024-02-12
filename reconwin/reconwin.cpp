@@ -79,6 +79,7 @@ void writeHeader(ofstream& html_file) {
     }
 }
 
+// Function to write HTML footer into a file
 void writeFooter(ofstream& html_file) {
     if (html_file.is_open()) {
         html_file << "</body>\n</html>\n";
@@ -87,6 +88,7 @@ void writeFooter(ofstream& html_file) {
     }
 }
 
+// Function to write a section with title and content into an HTML file
 void writeSection(ofstream& html_file, const string& section_id, const string& title, const string& content) {
     if (html_file.is_open()) {
         html_file << "<h2 id=\"" << section_id << "\">" << title << "</h2>\n";
@@ -96,6 +98,7 @@ void writeSection(ofstream& html_file, const string& section_id, const string& t
     }
 }
 
+// Function to write a link to a section into an HTML file
 void writeSectionLink(ofstream& html_file, const string& section_id, const string& link_text) {
     if (html_file.is_open()) {
         html_file << "<a href=\"#" << section_id << "\">" << link_text << "</a><br>\n";
@@ -104,11 +107,13 @@ void writeSectionLink(ofstream& html_file, const string& section_id, const strin
     }
 }
 
+// Function to write a table from the output of a command into an HTML file
 void writeTableFromCommandOutput(ofstream& html_file, const string& section_id, const string& title, const string& command_output) {
     if (html_file.is_open()) {
         html_file << "<h2 id=\"" << section_id << "\">" << title << "</h2>\n";
         html_file << "<table border=\"1\">\n";
 
+        // Write table rows based on lines of command output
         istringstream iss(command_output);
         string line;
         bool isHeader = true;
@@ -132,44 +137,5 @@ void writeTableFromCommandOutput(ofstream& html_file, const string& section_id, 
     }
 }
 
-void classifyProcesses(std::unordered_map<std::string, std::string>& system_outputs) {
-    std::vector<std::string> basicProcesses = {
-        "csrss", "dwm", "lsass", "lsm", "services", 
-        "smss", "spoolsv", "svchost", "system", 
-        "wininit", "winlogon"
-    };
 
-    std::vector<std::string> processes;
-    std::string processList = system_outputs["processList"];
-    std::istringstream iss(processList);
-    std::string process;
-    while (std::getline(iss, process, '\n')) {
-        processes.push_back(process);
-    }
-
-    std::vector<std::string> basicProcessList;
-    std::vector<std::string> thirdPartyProcessList;
-
-    for (const std::string& process : processes) {
-        std::string processName = process.substr(0, process.find_last_of("."));
-        std::transform(processName.begin(), processName.end(), processName.begin(), ::tolower);
-        if (std::find(basicProcesses.begin(), basicProcesses.end(), processName) != basicProcesses.end()) {
-            // Processus de base nécessaire
-            basicProcessList.push_back(processName);
-        } else {
-            // Logiciel tiers
-            thirdPartyProcessList.push_back(processName);
-        }
-    }
-
-    system_outputs["basic_processes"] = "";
-    for (const auto& process : basicProcessList) {
-        system_outputs["basic_processes"] += process + "\n";
-    }
-
-    system_outputs["third_party_software"] = "";
-    for (const auto& process : thirdPartyProcessList) {
-        system_outputs["third_party_software"] += process + "\n";
-    }
-}
 
