@@ -6,6 +6,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 DESCRIPTION:
 
+Detect Basic System Info With Inside Windows Command 
 
 USAGE :
 
