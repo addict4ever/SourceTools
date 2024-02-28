@@ -13,5 +13,7 @@ cl /Fe:httptest.exe /I"C:\temp\vcpkg\installed\x86-windows\include" /I"C:\temp\v
 
 cl.exe /nologo /Ox /EHsc /DNDEBUG /Felol.exe lol.cpp User32.lib
 
+cl /EHsc privcheck.cpp /link /out:privcheck.exe Advapi32.lib
+
 
 
