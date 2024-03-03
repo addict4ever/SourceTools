@@ -15,12 +15,17 @@ def load_json_file(file_path):
             data = json.load(json_file)
         return data
     except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found.")
+        return None
     except json.JSONDecodeError:
-        print(f"Error: Failed to decode JSON file '{file_path}'. Please ensure it is valid JSON.")
+        return None
     except Exception as e:
-        print(f"Error: An unexpected error occurred while loading JSON file '{file_path}': {str(e)}")
-    return None
+        return None
+
+def load_translations(language_file):
+    translations = load_json_file(language_file)
+    if not translations:
+        print("Error: Translations not loaded successfully.")
+    return translations
 
 config_data = load_json_file('config.json')
 
@@ -29,7 +34,7 @@ if config_data:
     database_name = config_data.get("database_name", "default_database_name")
     database_path = config_data.get("database_path", "default_database_path")
     language_file = config_data.get("language", "default_language_file")
-    translations = load_json_file(language_file)
+    translations = load_translations(language_file)
     if not translations:
         print("Error: Translations not loaded successfully.")
 else:
@@ -85,7 +90,7 @@ def open_file_dialog(root, column_name, file_paths_entry):
 def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_number):
     global form_fields
     form_fields = {}
-    combobox_columns = [fk[3] for fk in foreign_keys]  
+    combobox_columns = [fk[3] for fk in foreign_keys] 
     required_fields = detect_required_fields(selected_table)  
     
     scrollable_frame = tk.Frame(root)
@@ -111,7 +116,7 @@ def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_nu
                     elif 'FILE_PATHS' in column_name.upper():  
                         file_paths_entry = tk.Entry(form_frame, width=50)
                         file_paths_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                        button = tk.Button(form_frame, text="Select a file", command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(root, col, entry))
+                        button = tk.Button(form_frame, text=translations.get("Select a file", "Select a file"), command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(root, col, entry))
                         button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='w')
                         entry = file_paths_entry
                     elif 'NOTES' in column_name.upper():  
@@ -122,7 +127,7 @@ def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_nu
                         entry = ttk.Entry(form_frame)
                         entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
                     form_fields[column_name] = entry
-            else:  
+            else:  # Column associated with a combobox
                 linked_table = next((fk[2] for fk in foreign_keys if fk[3] == column_name), None)
                 if linked_table:
                     label_text = translated_column_name
@@ -135,18 +140,19 @@ def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_nu
                     update_combobox_from_linked_table(combobox, linked_table, column_name)
                     form_fields[column_name] = combobox
 
+
     if any(column[1] == 'Number' for column in columns_info):
-        label = tk.Label(form_frame, text="Number")
+        label = tk.Label(form_frame, text=translations.get("Number", "Number"))
         label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
         number_entry = ttk.Entry(form_frame)
         number_entry.insert(0, str(new_number))  
         number_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
         form_fields['Number'] = number_entry
 
-    save_button = tk.Button(form_frame, text="Save", command=lambda: save_button_click(selected_table, required_fields))
+    save_button = tk.Button(form_frame, text=translations.get("Save", "Save"), command=lambda: save_button_click(selected_table, required_fields))
     save_button.grid(row=len(form_fields), column=3, padx=10, pady=5, sticky='e')
 
-    return_button = tk.Button(form_frame, text="Main Menu", command=return_to_main_menu)
+    return_button = tk.Button(form_frame, text=translations.get("Main Menu", "Main Menu"), command=return_to_main_menu)
     return_button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='e')
 
     for i in range(len(form_fields)):
@@ -154,6 +160,7 @@ def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_nu
     form_frame.grid_columnconfigure(1, weight=1)
 
     return form_fields
+
 
 def update_combobox_from_linked_table(combobox, table_name, linked_column):
     data = fetch_linked_data(table_name, linked_column)
@@ -181,21 +188,21 @@ def save_button_click(table_name, required_fields):
         is_saved = True
         return_to_main_menu()
     else:
-        messagebox.showerror("Error", "Failed to save data.")
+        messagebox.showerror(translate("Error"), translate("Failed to save data."))
         is_saved = False
     
     if any(form_values.get(field_name) for field_name in required_fields):
         errors = validate_data(form_values, fetch_table_columns(table_name))
         if errors:
-            messagebox.showerror("Validation Error", errors)
+            messagebox.showerror(translate("Validation Error"), errors)
         else:
             try:
                 insert_data(table_name, form_values)
-                messagebox.showinfo("Success", "Data saved successfully.")
+                messagebox.showinfo(translate("Success"), translate("Data saved successfully."))
             except sqlite3.IntegrityError as e:
-                messagebox.showerror("Insertion Error", str(e))
+                messagebox.showerror(translate("Insertion Error"), str(e))
     else:
-        messagebox.showerror("Validation Error", "At least one required field must be filled.")
+        messagebox.showerror(translate("Validation Error"), translate("At least one required field must be filled."))
     return_to_main_menu()
 
 def fetch_tables():
@@ -258,34 +265,35 @@ def main_menu(root):
     for widget in root.winfo_children():
         widget.destroy()
     
-    menu_label = tk.Label(root, text="Main Menu", font=("Arial", 18))
+    menu_label = tk.Label(root, text=translations.get("Main Menu", "Main Menu"), font=("Arial", 18))
     menu_label.pack(pady=20)
 
-    search_label = ttk.Label(root, text="Search Term:")
+    search_label = ttk.Label(root, text=translations.get("Search Term", "Search Term") + ":")
     search_label.pack()
 
     search_entry = ttk.Entry(root)
     search_entry.pack()
 
-    search_button = ttk.Button(root, text="Search", command=lambda: search_button_click(search_entry.get()))
+    search_button = ttk.Button(root, text=translations.get("Search", "Search"), command=lambda: search_button_click(search_entry.get()))
     search_button.pack()
 
-    table_label = ttk.Label(root, text="Select a table to edit:")
+    table_label = ttk.Label(root, text=translations.get("Select a table to edit", "Select a table to edit") + ":")
     table_label.pack()
 
     available_tables = fetch_tables()  
     table_menu = ttk.Combobox(root, values=available_tables)
     table_menu.pack()
 
-    select_button = ttk.Button(root, text="Select", command=lambda: table_menu_select(table_menu.get(), root))
+    select_button = ttk.Button(root, text=translations.get("Select", "Select"), command=lambda: table_menu_select(table_menu.get(), root))
     select_button.pack()
 
-    quit_button = ttk.Button(root, text="Quit", command=root.quit)
+    quit_button = ttk.Button(root, text=translations.get("Quit", "Quit"), command=root.quit)
     quit_button.pack(pady=20)
-    
+
+
 def return_to_main_menu():
     if not is_saved:
-        if messagebox.askyesno("Unsaved Changes", "You have unsaved changes. Are you sure you want to continue?"):
+        if messagebox.askyesno(translate("Unsaved Changes"), translate("You have unsaved changes. Are you sure you want to continue?")):
             for widget in root.winfo_children():
                 widget.destroy()
             main_menu(root)
@@ -299,7 +307,7 @@ def search_button_click(search_term):
         results = search_all_tables(search_term)
         display_search_results(results)
     else:
-        messagebox.showwarning("Empty Search Term", "Please enter a search term.")
+        messagebox.showwarning(translate("Empty Search Term"), translate("Please enter a search term."))
 
 def search_all_tables(search_term):
     results = []
@@ -307,12 +315,17 @@ def search_all_tables(search_term):
         table_results = search_data(table, search_term)
         results.extend(table_results)
     return results
-            
+
 if __name__ == "__main__":
+    print("Available tables:")
     with open('config.json', 'r') as config_file:
         config = json.load(config_file)
     available_tables = fetch_tables()
+    print(available_tables)
+
     root = tk.Tk()
     root.title(config.get("company_name", "Table Search"))
+
     main_menu(root)  
+
     root.mainloop()
