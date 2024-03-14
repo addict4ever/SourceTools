@@ -108,8 +108,6 @@ class TunnelManager:
             tunnel_address = (self.tunnel_hostname, self.tunnel_port)
             with self.make_listening_server(tunnel_address) as tunnel_socket:
                 client_socket, _ = tunnel_socket.accept()
-
-
                 if not self.handle_client_authentication(client_socket):
                     return
 
@@ -121,14 +119,10 @@ class TunnelManager:
             with self.make_listening_server(rppf_address) as rppf_socket:
                 logger.info(f"RPPF service opened on {str(rppf_address)}")
                 logger.info("Ready to transfer data")
-
-
                 tunnel2rppf_t = threading.Thread(target=self.tunnel2rppf)
                 rppf2tunnel_t = threading.Thread(target=self.rppf2tunnel)
                 tunnel2rppf_t.daemon = True
                 rppf2tunnel_t.daemon = True
-
-
                 with self.rppf_conn_lock:
                     self.rppf_conn, _ = rppf_socket.accept()
 
@@ -180,15 +174,11 @@ def parse_arguments():
     try:
         tunnel_address_parts = args.tunnel.split(':')
         forward_address_parts = args.forward.split(':')
-
         tunnel_hostname = tunnel_address_parts[0]
         tunnel_port = int(tunnel_address_parts[1])
-
         forward_hostname = forward_address_parts[0]
         forward_port = int(forward_address_parts[1])
-
         shared_key = args.shared_key 
-
         return tunnel_hostname, tunnel_port, forward_hostname, forward_port, shared_key
 
     except (ValueError, IndexError):
