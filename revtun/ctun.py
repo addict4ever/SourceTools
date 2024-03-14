@@ -11,9 +11,10 @@ MAX_RESET_COUNT = 10
 BUFFER_SIZE = 20000
 
 class TunnelingClient:
-    def __init__(self, tunnel_address, forward_address):
+    def __init__(self, tunnel_address, forward_address, shared_key):
         self.tunnel_address = tunnel_address
         self.forward_address = forward_address
+        self.shared_key = shared_key  
         self.tunnel_socket = None
         self.forward_socket = None
         self.sending_socket_lock = threading.Lock()
@@ -33,7 +34,7 @@ class TunnelingClient:
         return client_socket
 
     def close_and_exit(self):
-        # close sockets and exit the program
+        
         self.close_connections()
         print('\nStopped correctly')
         sys.exit(1)
@@ -91,13 +92,14 @@ class TunnelingClient:
             self.tunnel_socket = self.establish_connection(self.tunnel_address)
             print("Tunnel created")
 
+            self.tunnel_socket.sendall(self.shared_key.encode())
+
             print("Opening forward connection to " + str(self.forward_address))
             self.forward_socket = self.establish_connection(self.forward_address)
             print("Connection created")
             print("--------------------------------------------")
             print("Ready to transfer data")
 
-            # start thread for incoming and outgoing traffic
             self.tunnel2forward_t = threading.Thread(target=self.tunnel2forward)
             self.forward2tunnel_t = threading.Thread(target=self.forward2tunnel)
             self.tunnel2forward_t.daemon = True
@@ -125,7 +127,7 @@ class TunnelingClient:
             sys.exit(0)
     
     def close_connections(self):
-        # close sockets
+
         if self.tunnel_socket:
             self.tunnel_socket.shutdown(socket.SHUT_RDWR)
             self.tunnel_socket.close()
@@ -137,10 +139,11 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Tunneling Client')
     parser.add_argument('--tunnel', default='16.16.16.114:10000', help='Tunnel address in the format "host:port"')
     parser.add_argument('--forward', default='127.0.0.1:3389', help='Forward address in the format "host:port"')
+    parser.add_argument('--shared-key', default='lol', help='Shared key for authentication')  
 
     args = parser.parse_args()
 
-    # Validate tunnel and forward addresses
+
     if not re.match(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}\b', args.tunnel):
         print("Invalid tunnel address format. Please use the format 'host:port'.")
         sys.exit(1)
@@ -162,7 +165,7 @@ if __name__ == "__main__":
         tunnel_address = (tunnel_host, int(tunnel_port))
         forward_address = (forward_host, int(forward_port))
 
-        tunneling_client = TunnelingClient(tunnel_address, forward_address)
+        tunneling_client = TunnelingClient(tunnel_address, forward_address, args.shared_key) 
         tunneling_client.start_tunneling()
 
     except KeyboardInterrupt:
