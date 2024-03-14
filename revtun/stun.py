@@ -8,15 +8,32 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class TunnelManager:
-    def __init__(self, tunnel_hostname, tunnel_port, forward_hostname, forward_port, buffer_size=20000):
+    def __init__(self, tunnel_hostname, tunnel_port, forward_hostname, forward_port, shared_key, buffer_size=20000):
         self.tunnel_hostname = tunnel_hostname
         self.tunnel_port = tunnel_port
         self.forward_hostname = forward_hostname
         self.forward_port = forward_port
+        self.shared_key = shared_key
         self.buffer_size = buffer_size
         self.tunnel_conn = None
         self.rppf_conn = None
         self.rppf_conn_lock = threading.Lock()
+
+    def handle_client_authentication(self, client_socket):
+        try:
+            key = client_socket.recv(1024).decode()
+            logger.info(f"Received key from client: {key}")
+
+            if key == self.shared_key:
+                logger.info("Client authenticated successfully.")
+                return True
+            else:
+                logger.error("Authentication failed.")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error handling client authentication: {e}")
+            return False
 
     def make_listening_server(self, address):
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,7 +45,6 @@ class TunnelManager:
     def reset_connections(self):
         with self.rppf_conn_lock:
             try:
-                # Close existing connections
                 if self.tunnel_conn:
                     self.tunnel_conn.shutdown(socket.SHUT_RDWR)
                     self.tunnel_conn.close()
@@ -36,7 +52,6 @@ class TunnelManager:
                     self.rppf_conn.shutdown(socket.SHUT_RDWR)
                     self.rppf_conn.close()
 
-                # Reset connections
                 tunnel_address = (self.tunnel_hostname, self.tunnel_port)
                 with self.make_listening_server(tunnel_address) as tunnel_socket:
                     self.tunnel_conn, _ = tunnel_socket.accept()
@@ -92,7 +107,13 @@ class TunnelManager:
             logger.info("Waiting for incoming tunnel connection...")
             tunnel_address = (self.tunnel_hostname, self.tunnel_port)
             with self.make_listening_server(tunnel_address) as tunnel_socket:
-                self.tunnel_conn, _ = tunnel_socket.accept()
+                client_socket, _ = tunnel_socket.accept()
+
+
+                if not self.handle_client_authentication(client_socket):
+                    return
+
+                self.tunnel_conn = client_socket
                 logger.info("Tunnel established")
 
             logger.info("Opening RPPF listening service...")
@@ -101,13 +122,13 @@ class TunnelManager:
                 logger.info(f"RPPF service opened on {str(rppf_address)}")
                 logger.info("Ready to transfer data")
 
-                # Start threads for incoming and outgoing traffic
+
                 tunnel2rppf_t = threading.Thread(target=self.tunnel2rppf)
                 rppf2tunnel_t = threading.Thread(target=self.rppf2tunnel)
                 tunnel2rppf_t.daemon = True
                 rppf2tunnel_t.daemon = True
 
-                # Start threads only after initializing the connection with RPPF
+
                 with self.rppf_conn_lock:
                     self.rppf_conn, _ = rppf_socket.accept()
 
@@ -136,6 +157,9 @@ class TunnelManager:
             logger.error('Attempting to close sockets')
             self.close_connections()
 
+        while True:
+            time.sleep(1)
+
     def close_connections(self):
         if hasattr(self, 'tunnel_socket'):
             self.tunnel_socket.shutdown(socket.SHUT_RDWR)
@@ -149,10 +173,10 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='Tunneling Manager')
     parser.add_argument('--tunnel', default='16.16.16.114:10000', help='Tunnel address in the format "host:port"')
     parser.add_argument('--forward', default='127.0.0.1:3389', help='Forward address in the format "host:port"')
+    parser.add_argument('--shared-key', default='lol', help='Shared key for authentication')
 
     args = parser.parse_args()
 
-    # Validate and parse the tunnel and forward addresses
     try:
         tunnel_address_parts = args.tunnel.split(':')
         forward_address_parts = args.forward.split(':')
@@ -163,24 +187,27 @@ def parse_arguments():
         forward_hostname = forward_address_parts[0]
         forward_port = int(forward_address_parts[1])
 
-        return tunnel_hostname, tunnel_port, forward_hostname, forward_port
+        shared_key = args.shared_key 
+
+        return tunnel_hostname, tunnel_port, forward_hostname, forward_port, shared_key
 
     except (ValueError, IndexError):
         parser.error("Invalid address format. Please use the format 'host:port' for both --tunnel and --forward.")
 
 if __name__ == "__main__":
     # Parse command-line arguments
-    tunnel_hostname, tunnel_port, forward_hostname, forward_port = parse_arguments()
+    tunnel_hostname, tunnel_port, forward_hostname, forward_port, shared_key = parse_arguments()
 
-    # Usage with command-line arguments
     try:
         tunnel_manager = TunnelManager(
             tunnel_hostname=tunnel_hostname,
             tunnel_port=tunnel_port,
             forward_hostname=forward_hostname,
-            forward_port=forward_port
+            forward_port=forward_port,
+            shared_key=shared_key
         )
         tunnel_manager.start_tunneling()
 
     except Exception as e:
         logger.error(e)
+
