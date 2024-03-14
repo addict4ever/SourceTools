@@ -79,30 +79,39 @@ def detect_required_fields(table_name):
     query = f"PRAGMA table_info({table_name})"
     columns_info = execute_query(query, fetchall=True)
     return [column[1] for column in columns_info if column[3] == 1]
+    
 
 def create_date_field(root):
     return DateEntry(root, width=12, background='darkblue', foreground='white', borderwidth=2)
-
-def open_file_dialog(root, column_name, file_paths_entry):
-    file_paths = filedialog.askopenfilenames()
+def open_file_dialog(form_window, column_name, file_paths_entry):
+    file_paths = filedialog.askopenfilenames(parent=form_window)
     if file_paths:
+        form_window.focus_set()  # Mettre le formulaire en premier plan
         file_paths_entry.delete(0, tk.END)
         file_paths_entry.insert(0, ', '.join(file_paths))
 
-def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_number):
+def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys, new_number=None, record_details=None, form_fields=None):
     edit_window = tk.Toplevel(root)
-    edit_window.title("Save Record")
-
+    if record_details:
+        edit_window.title("Edit Record")
+    else:
+        edit_window.title("Save Record")
+    
     scrollable_frame = tk.Frame(edit_window)
     scrollable_frame.pack(expand=True, fill="both", padx=10, pady=10)
 
     form_frame = tk.Frame(scrollable_frame)
     form_frame.pack(expand=True, fill="both", padx=0, pady=0)
-
+    
     form_fields = {}
-    combobox_columns = [fk[3] for fk in foreign_keys]
-    required_fields = detect_required_fields(selected_table)
-
+    combobox_columns = [fk[3] for fk in foreign_keys] 
+    required_fields = detect_required_fields(selected_table)  
+    
+    if record_details:
+        record_dict = {column_info[1]: value for column_info, value in zip(columns_info, record_details)}
+    
+    entry = None  # Initialisation de la variable entry
+    
     for column_info in columns_info:
         column_name = column_info[1]
         translated_column_name = translations.get(column_name, column_name)
@@ -114,112 +123,34 @@ def create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_nu
                         label_text += " *"
                     label = tk.Label(form_frame, text=label_text)
                     label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
+
+                    default_value = ''
+                    if record_details:
+                        default_value = record_dict.get(column_name, '')
+                    
                     if 'DATE' in column_info[2].upper():
                         entry = create_date_field(form_frame)
+                        if default_value:
+                            entry.set_date(default_value)
                         entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                    elif 'FILE_PATHS' in column_name.upper():
+                    elif 'FILE_PATHS' in column_name.upper():  
                         file_paths_entry = tk.Entry(form_frame, width=50)
+                        file_paths_entry.insert(0, default_value)
                         file_paths_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                        button = tk.Button(form_frame, text=translations.get("Select a file", "Select a file"), command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(root, col, entry))
+                        button = tk.Button(form_frame, text=translations.get("Select a file", "Select a file"), command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(edit_window, col, entry))
                         button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='w')
                         entry = file_paths_entry
-                    elif 'NOTES' in column_name.upper():
-                        text_field = scrolledtext.ScrolledText(form_frame, height=5, width=50)
+                    elif 'NOTES' in column_name.upper():  
+                        text_field = scrolledtext.ScrolledText(form_frame, height=5, width=50)  
                         text_field.grid(row=len(form_fields), column=1, columnspan=2, padx=10, pady=5, sticky='w')
+                        if record_details:
+                            default_value = record_dict.get(column_name, '')  
+                            text_field.insert(tk.END, default_value)
                         entry = text_field
+
                     else:
                         entry = ttk.Entry(form_frame)
-                        entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                    form_fields[column_name] = entry
-            else:  # Column associated with a combobox
-                linked_table = next((fk[2] for fk in foreign_keys if fk[3] == column_name), None)
-                if linked_table:
-                    label_text = translated_column_name
-                    if column_name in required_fields:
-                        label_text += " *"
-                    label = tk.Label(form_frame, text=label_text)
-                    label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
-                    combobox = ttk.Combobox(form_frame)
-                    combobox.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                    update_combobox_from_linked_table(combobox, linked_table, column_name)
-                    form_fields[column_name] = combobox
-
-    if any(column[1] == 'Number' for column in columns_info):
-        label = tk.Label(form_frame, text=translations.get("Number", "Number"))
-        label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
-        number_entry = ttk.Entry(form_frame)
-        number_entry.insert(0, str(new_number))
-        number_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-        form_fields['Number'] = number_entry
-
-    save_button = tk.Button(form_frame, text=translations.get("Save", "Save"), command=lambda: save_button_click(selected_table, required_fields, form_fields))
-    save_button.grid(row=len(form_fields), column=3, padx=10, pady=5, sticky='e')
-
-    return_button = tk.Button(form_frame, text="Main Menu", command=edit_window.destroy)
-    return_button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='e')
-
-    for i in range(len(form_fields)):
-        form_frame.grid_rowconfigure(i, weight=1)
-    form_frame.grid_columnconfigure((0,1,2,3), weight=1)
-
-    return form_fields
-
-
-def edit_record_form(record_details, selected_table, columns_info, foreign_keys, new_number):
-    edit_window = tk.Toplevel(root)
-    edit_window.title("Edit Record")
-
-    form_fields = {}
-    combobox_columns = [fk[3] for fk in foreign_keys]
-    required_fields = detect_required_fields(selected_table)
-
-    form_frame = tk.Frame(edit_window)
-    form_frame.pack(expand=True, fill="both", padx=10, pady=10)
-
-    number_index = next((i for i, col_info in enumerate(columns_info) if col_info[1] == 'Number'), None)
-    if number_index is not None:
-        record_number = record_details[number_index]
-        label_number = tk.Label(form_frame, text="Number:")
-        label_number.grid(row=0, column=0, padx=10, pady=5, sticky='w')
-        entry_number = tk.Entry(form_frame)
-        entry_number.insert(0, record_number)
-        entry_number.grid(row=0, column=1, padx=10, pady=5, sticky='w')
-        form_fields["Number"] = entry_number
-
-    record_dict = {column_info[1]: value for column_info, value in zip(columns_info, record_details)}
-
-    for column_info in columns_info:
-        column_name = column_info[1]
-        translated_column_name = translations.get(column_name, column_name)
-        if column_name != 'Number':
-            if column_name not in combobox_columns:
-                if not column_name.lower().endswith("id"):
-                    label_text = translated_column_name
-                    if column_name in required_fields:
-                        label_text += " *"
-                    label = tk.Label(form_frame, text=label_text)
-                    label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
-
-                    if 'DATE' in column_info[2].upper():
-                        entry = DateEntry(form_frame, width=12, background='darkblue', foreground='white', borderwidth=2)
-                        entry.set_date(record_dict.get(column_name, ''))
-                        entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                        form_fields[column_name] = entry
-                    elif 'FILE_PATHS' in column_name.upper():
-                        file_paths_entry = tk.Entry(form_frame, width=50)
-                        file_paths_entry.insert(0, record_dict.get(column_name, ''))
-                        file_paths_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
-                        button = tk.Button(form_frame, text="Select a file", command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(root, col, entry))
-                        button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='w')
-                        entry = file_paths_entry
-                    elif 'NOTES' in column_name.upper():
-                        text_field = scrolledtext.ScrolledText(form_frame, height=5, width=50)
-                        text_field.insert(tk.END, record_dict.get(column_name, ''))
-                        text_field.grid(row=len(form_fields), column=1, columnspan=2, padx=10, pady=5, sticky='w')
-                        entry = text_field
-                    else:
-                        entry = tk.Entry(form_frame)
-                        entry.insert(0, record_dict.get(column_name, ''))
+                        entry.insert(0, default_value)
                         entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
                     form_fields[column_name] = entry
             else:
@@ -230,30 +161,53 @@ def edit_record_form(record_details, selected_table, columns_info, foreign_keys,
                         label_text += " *"
                     label = tk.Label(form_frame, text=label_text)
                     label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
-                    combobox = ttk.Combobox(form_frame)
+                    combobox = ttk.Combobox(form_frame, state="readonly")
                     combobox.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
                     update_combobox_from_linked_table(combobox, linked_table, column_name)
-                    combobox.set(record_dict.get(column_name, ''))
+                    if record_details:
+                        combobox.set(record_dict.get(column_name, ''))
+                    else:
+                        if len(combobox['values']) > 0: 
+                            combobox.set(combobox['values'][0])  
                     form_fields[column_name] = combobox
 
-    save_button = tk.Button(form_frame, text="Save", command=lambda: save_button_click(selected_table, required_fields, form_fields, is_editing=True))
-    save_button.grid(row=len(form_fields) + 1, column=1, padx=10, pady=5, sticky='e')
+    if any(column[1] == 'Number' for column in columns_info):
+        label = tk.Label(form_frame, text=translations.get("Number", "Number"))
+        label.grid(row=len(form_fields), column=0, padx=10, pady=5, sticky='w')
+        number_entry = ttk.Entry(form_frame)
+        number_entry.insert(0, str(new_number))  
+        number_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
+        form_fields['Number'] = number_entry
+
+    save_button_text = translations.get("Save", "Save") if record_details else translations.get("Save", "Save")
+    save_button_command = get_save_button_command(selected_table, required_fields, form_fields, record_details)
+    save_button = tk.Button(form_frame, text=save_button_text, command=save_button_command)
+    save_button.grid(row=len(form_fields) + 1, column=0, padx=10, pady=5, sticky='e')
 
     return_button = tk.Button(form_frame, text="Main Menu", command=edit_window.destroy)
-    return_button.grid(row=len(form_fields) + 1, column=0, padx=10, pady=5, sticky='e')
+    return_button.grid(row=len(form_fields) + 1, column=1, padx=10, pady=5, sticky='e')
 
     for i in range(len(form_fields)):
         form_frame.grid_rowconfigure(i, weight=1)
-    form_frame.grid_columnconfigure(1, weight=1)
+    form_frame.grid_columnconfigure((0,1), weight=1)
 
     edit_window.mainloop()
 
+
+
+def get_save_button_command(selected_table, required_fields, form_fields, record_details=None):
+    if record_details is None:
+        return lambda: save_button_click(selected_table, required_fields, form_fields,is_editing=False)
+    else:
+        return lambda: save_button_click(selected_table, required_fields, form_fields,is_editing=True)
+        
 def update_combobox_from_linked_table(combobox, table_name, linked_column):
     data = fetch_linked_data(table_name, linked_column)
     values = [item[1] for item in data]
     combobox['values'] = values
 
 def validate_data(form_values, columns_info):
+    print ("lol")
     errors = []
     required_fields = [column[1] for column in columns_info if column[3] == '1']
     for field_name in required_fields:
@@ -261,8 +215,17 @@ def validate_data(form_values, columns_info):
             errors.append(f"{field_name} is required.")
     return "\n".join(errors)
 
+def show_error_message(message):
+    error_window = tk.Toplevel()
+    error_window.title("Error")
+    error_label = tk.Label(error_window, text=message, padx=20, pady=10)
+    error_label.pack()
+    error_button = tk.Button(error_window, text="OK", command=error_window.destroy)
+    error_button.pack()
+    
 def save_button_click(table_name, required_fields, form_fields, is_editing=False):
     global is_saved
+    print("Save button clicked")  
     form_values = {}
     for column_name, field in form_fields.items():
         if isinstance(field, tk.Text):
@@ -270,44 +233,79 @@ def save_button_click(table_name, required_fields, form_fields, is_editing=False
         else:
             form_values[column_name] = field.get()
     
+    print("Form values:", form_values)  
+
     if is_editing:
         try:
             update_data(table_name, form_values)
-            messagebox.showinfo(translate("Success"), translate("Data modified successfully."))
+            print(form_values)
+            messagebox.showinfo("Success", "Data modified successfully.")
             return_to_main_menu()
             is_saved = True
+        except sqlite3.Error as e:
+            show_error_message(f"SQLite error: {str(e)}")
+            is_saved = False
         except Exception as e:
-            messagebox.showerror(translate("Error"), translate("Failed to modify data."))
+            show_error_message(f"An unexpected error occurred: {str(e)}")
             is_saved = False
     else:
-        if successfully_saved_data():
-            is_saved = True
-            return_to_main_menu()
-        else:
-            messagebox.showerror(translate("Error"), translate("Failed to save data."))
-            is_saved = False
-        
         if any(form_values.get(field_name) for field_name in required_fields):
             errors = validate_data(form_values, fetch_table_columns(table_name))
             if errors:
-                messagebox.showerror(translate("Validation Error"), errors)
+                show_error_message(errors)
+                return
             else:
                 try:
                     insert_data(table_name, form_values)
-                    messagebox.showinfo(translate("Success"), translate("Data saved successfully."))
-                    return_to_main_menu()
+                    messagebox.showinfo("Success", "Data saved successfully.")
+                   
+                    main_menu(root)
                 except sqlite3.IntegrityError as e:
-                    messagebox.showerror(translate("Insertion Error"), str(e))
+                    show_error_message(str(e))
+                except sqlite3.Error as e:
+                    show_error_message(f"SQLite error: {str(e)}")
+                    is_saved = False
+                except Exception as e:
+                    show_error_message(f"An unexpected error occurred: {str(e)}")
+                    is_saved = False
         else:
-            messagebox.showerror(translate("Validation Error"), translate("At least one required field must be filled."))
-        return_to_main_menu()
+            show_error_message("At least one required field must be filled.")
 
+def show_info_message(message):
+    info_window = tk.Toplevel()
+    info_window.title("Success")
+    info_label = tk.Label(info_window, text=message, padx=20, pady=10)
+    info_label.pack()
+    info_button = tk.Button(info_window, text="OK", command=info_window.destroy)
+    info_button.pack()
+    
 def update_data(table_name, new_values):
-    set_clause = ", ".join([f"{column} = ?" for column in new_values.keys()])
-    query = f"UPDATE {table_name} SET {set_clause} WHERE Number = ?" 
-    values = list(new_values.values()) + [new_values['Number']]
+    required_fields = detect_required_fields(table_name) 
+    set_clauses = [f"{column} = ?" for column in new_values.keys() if column != 'Number']  
+    set_clause = ", ".join(set_clauses)
+    query = f"UPDATE {table_name} SET {set_clause} WHERE Number = ?"
+
+
+    missing_required_fields = [field for field in required_fields if field not in new_values.keys()]
+    if missing_required_fields:
+        raise ValueError(f"Missing required fields: {', '.join(missing_required_fields)}")
+
+    # Construire la liste des valeurs pour la requête SQL
+    values = [new_values[column] for column in new_values.keys() if column != 'Number'] + [new_values['Number']]
+
+    # Exécuter la requête SQL
     execute_query(query, params=tuple(values))
 
+
+
+def detect_unique_column(table_name):
+    query = f"PRAGMA table_info({table_name})"
+    columns_info = execute_query(query, fetchall=True)
+    for column_info in columns_info:
+        if column_info[5] == 1:  
+            return column_info[1]  
+    return None  
+    
 def fetch_tables():
     query = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"
     tables = execute_query(query, fetchall=True)
@@ -330,8 +328,8 @@ def table_menu_select(selected_table, root):
         count_query = f"SELECT COUNT(*) FROM {selected_table}"
         count_result = execute_query(count_query)
         new_number = count_result[0] + 1
-
-    form_fields = create_dynamic_form(root, selected_table, columns_info, foreign_keys, new_number)
+    
+    form_fields = create_or_edit_record_form(root, selected_table, columns_info, foreign_keys, new_number)
 
 def search_all_tables(search_term):
     results = []
@@ -372,8 +370,9 @@ def on_double_click(event, search_results_listbox):
         selected_table = record_details[0]
         columns_info = fetch_table_columns(selected_table)
         foreign_keys = fetch_foreign_keys(selected_table)
-        new_number = record_details[0]
-        edit_record_form(record_details[1:], selected_table, columns_info, foreign_keys, new_number)
+        new_number = record_details[1]  
+        create_or_edit_record_form(root, selected_table, columns_info, foreign_keys, new_number, record_details[1:])  
+
 
 def fetch_record_details(table_name, record_id):
     query = f"SELECT * FROM {table_name} WHERE ID = ?"
