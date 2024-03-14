@@ -1,6 +1,9 @@
 import json
 import sqlite3
 import tkinter as tk
+import os
+import subprocess
+import platform
 from gettext import gettext as translate
 from functools import partial
 from tkinter import ttk, filedialog, messagebox, scrolledtext
@@ -86,9 +89,15 @@ def create_date_field(root):
 def open_file_dialog(form_window, column_name, file_paths_entry):
     file_paths = filedialog.askopenfilenames(parent=form_window)
     if file_paths:
-        form_window.focus_set()  # Mettre le formulaire en premier plan
+        form_window.focus_set()  
         file_paths_entry.delete(0, tk.END)
         file_paths_entry.insert(0, ', '.join(file_paths))
+
+def create_open_file_function(file_path):
+    def open_file_callback(event):
+        open_file(file_path)
+    return open_file_callback
+            
 
 def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys, new_number=None, record_details=None, form_fields=None):
     edit_window = tk.Toplevel(root)
@@ -110,7 +119,7 @@ def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys,
     if record_details:
         record_dict = {column_info[1]: value for column_info, value in zip(columns_info, record_details)}
     
-    entry = None  # Initialisation de la variable entry
+    text_widget = scrolledtext.ScrolledText(form_frame, height=5, width=50)
     
     for column_info in columns_info:
         column_name = column_info[1]
@@ -134,9 +143,16 @@ def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys,
                             entry.set_date(default_value)
                         entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
                     elif 'FILE_PATHS' in column_name.upper():  
+                        file_paths = default_value.split(', ')
+                        for idx, file_path in enumerate(file_paths):
+                            link_text = file_path + '\n'                            
+                            link_label = tk.Label(text_widget, text=file_path, fg="blue", cursor="hand2")
+                            link_label.bind("<Button-1>", lambda event, path=file_path: open_file(path))
+                            text_widget.window_create(tk.END, window=link_label)
+                            text_widget.insert(tk.END, "\n")
                         file_paths_entry = tk.Entry(form_frame, width=50)
                         file_paths_entry.insert(0, default_value)
-                        file_paths_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
+                        file_paths_entry.grid(row=len(form_fields), column=1, padx=20, pady=5, sticky='w')
                         button = tk.Button(form_frame, text=translations.get("Select a file", "Select a file"), command=lambda col=column_name, entry=file_paths_entry: open_file_dialog(edit_window, col, entry))
                         button.grid(row=len(form_fields), column=2, padx=10, pady=5, sticky='w')
                         entry = file_paths_entry
@@ -178,7 +194,9 @@ def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys,
         number_entry.insert(0, str(new_number))  
         number_entry.grid(row=len(form_fields), column=1, padx=10, pady=5, sticky='w')
         form_fields['Number'] = number_entry
-
+    
+    text_widget.grid(row=len(form_fields), column=1, columnspan=2, padx=10, pady=5, sticky='w')
+    
     save_button_text = translations.get("Save", "Save") if record_details else translations.get("Save", "Save")
     save_button_command = get_save_button_command(selected_table, required_fields, form_fields, record_details)
     save_button = tk.Button(form_frame, text=save_button_text, command=save_button_command)
@@ -193,6 +211,17 @@ def create_or_edit_record_form(root, selected_table, columns_info, foreign_keys,
 
     edit_window.mainloop()
 
+def open_file(file_path):
+    try:
+        print(file_path)
+        if platform.system() == 'Windows':
+            subprocess.Popen(['start', file_path], shell=True)
+        elif platform.system() == 'Linux':
+            subprocess.Popen(['xdg-open', file_path])
+        else:
+            messagebox.showerror("Error", "Unsupported operating system")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open file: {str(e)}")
 
 
 def get_save_button_command(selected_table, required_fields, form_fields, record_details=None):
@@ -289,11 +318,7 @@ def update_data(table_name, new_values):
     missing_required_fields = [field for field in required_fields if field not in new_values.keys()]
     if missing_required_fields:
         raise ValueError(f"Missing required fields: {', '.join(missing_required_fields)}")
-
-    # Construire la liste des valeurs pour la requête SQL
     values = [new_values[column] for column in new_values.keys() if column != 'Number'] + [new_values['Number']]
-
-    # Exécuter la requête SQL
     execute_query(query, params=tuple(values))
 
 
