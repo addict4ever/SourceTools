@@ -9,7 +9,7 @@ from Crypto.Cipher import PKCS1_OAEP
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class TunnelingClient:
+class TunnelingServer:
     def __init__(self, tunnel_address, forward_address, rsa_key_path, shared_key):
         self.tunnel_address = tunnel_address
         self.forward_address = forward_address
@@ -22,13 +22,17 @@ class TunnelingClient:
         self.last_data_received_time = time.time()
 
     def establish_connection(self, address):
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         try:
-            client_socket.connect(address)
+            server_socket.bind(address)
+            server_socket.listen(1)
+            logger.info(f"Server listening on {address}")
+            client_socket, _ = server_socket.accept()
+            logger.info(f"Connection established with client {client_socket.getpeername()}")
         except socket.error as e:
-            logger.error(f"Error connecting to {address}: {e}")
+            logger.error(f"Error binding server socket to {address}: {e}")
             raise
 
         return client_socket
@@ -90,24 +94,19 @@ class TunnelingClient:
             logger.info("Creating tunnel to " + str(self.tunnel_address))
             self.tunnel_socket = self.establish_connection(self.tunnel_address)
             logger.info("Tunnel created")
-
             logger.info("Encrypting and sending shared key")
             self.encrypt_shared_key()
-
             logger.info("Opening forward connection to " + str(self.forward_address))
             self.forward_socket = self.establish_connection(self.forward_address)
             logger.info("Connection created")
             logger.info("--------------------------------------------")
             logger.info("Ready to transfer data")
-
             self.tunnel2forward_t = threading.Thread(target=self.tunnel2forward)
             self.forward2tunnel_t = threading.Thread(target=self.forward2tunnel)
             self.tunnel2forward_t.daemon = True
             self.forward2tunnel_t.daemon = True
-
             self.tunnel2forward_t.start()
             self.forward2tunnel_t.start()
-
             self.tunnel2forward_t.join()
             self.forward2tunnel_t.join()
 
@@ -154,12 +153,11 @@ class TunnelingClient:
             self.close_and_exit()
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Tunneling Client')
+    parser = argparse.ArgumentParser(description='Tunneling Server')
     parser.add_argument('--tunnel', default='16.16.16.114:10000', help='Tunnel address in the format "host:port"')
     parser.add_argument('--forward', default='127.0.0.1:3389', help='Forward address in the format "host:port"')
     parser.add_argument('--rsa-key', default='test_rsa.key', help='Path to server RSA key')
-    parser.add_argument('--shared-key', default='lol1', help='Shared key for authentication')
-
+    parser.add_argument('--shared-key', required=True, help='Shared key for authentication')
     args = parser.parse_args()
     return args
 
@@ -168,14 +166,12 @@ if __name__ == "__main__":
 
     tunnel_host, tunnel_port = args.tunnel.split(':')
     forward_host, forward_port = args.forward.split(':')
-
     tunnel_address = (tunnel_host, int(tunnel_port))
     forward_address = (forward_host, int(forward_port))
-
-    tunneling_client = TunnelingClient(
+    tunneling_server = TunnelingServer(
         tunnel_address=tunnel_address,
         forward_address=forward_address,
         rsa_key_path=args.rsa_key,
         shared_key=args.shared_key
     )
-    tunneling_client.start_tunneling()
+    tunneling_server.start_tunneling()
