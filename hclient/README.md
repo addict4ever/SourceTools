@@ -33,3 +33,5 @@ Compile :
 cl /Fe:httptest.exe /I"C:\temp\hclient\include" /std:c++17 /EHsc user32.lib gdi32.lib httptest.cpp screencapture.cpp fileutils.cpp ctun.cpp camera.cpp reconwin.cpp /link /LIBPATH:"C:\temp\hclient\lib" libcurl.lib zlib.lib user32.lib gdi32.lib Ws2_32.lib Crypt32.lib Advapi32.lib ole32.lib strmiids.lib oleaut32.lib Netapi32.lib
 
 cl /Fe:httptest.exe /I"C:\devs\client\SourceTools\hclient\include" /I"C:\vcpkg\installed\x64-windows-static\include" /std:c++17 /EHsc /arch:x64 user32.lib gdi32.lib libcurl.lib zlib.lib hclient.cpp screencapture.cpp fileutils.cpp ctun.cpp camera.cpp reconwin.cpp /link /LIBPATH:"C:\vcpkg\installed\x64-windows-static\lib" user32.lib gdi32.lib Ws2_32.lib Crypt32.lib Advapi32.lib ole32.lib strmiids.lib oleaut32.lib Netapi32.lib
+
+cl /EHsc sshclientarg.cpp /I"C:\vcpkg\installed\x86-windows-static\include" /link /LIBPATH:"C:\vcpkg\installed\x86-windows-static\lib" ssh.lib libcrypto.lib Ws2_32.lib Crypt32.lib User32.lib Advapi32.lib Shell32.lib
