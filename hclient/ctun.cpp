@@ -106,6 +106,8 @@ void TunnelingClient::startTunneling() {
         tunnel2forwardThread = std::thread(&TunnelingClient::tunnel2forward, this);
         forward2tunnelThread = std::thread(&TunnelingClient::forward2tunnel, this);
 
+        tunnelingSuccessful = true;
+
     } catch (const std::exception& e) {
         std::cerr << "An exception occurred" << std::endl;
         std::cerr << e.what() << std::endl;
@@ -115,6 +117,7 @@ void TunnelingClient::startTunneling() {
         std::cout << "\nStopped correctly" << std::endl;
 
         tunnelsClosed = true;
+        tunnelingSuccessful = false;
     }
 }
 
@@ -144,4 +147,8 @@ void TunnelingClient::closeTunnels() {
 
 bool TunnelingClient::areTunnelsClosed() const {
     return tunnelsClosed;
+}
+
+bool TunnelingClient::isTunnelingSuccessful() const {
+    return tunnelingSuccessful;
 }
