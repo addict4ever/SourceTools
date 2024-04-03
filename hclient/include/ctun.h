@@ -22,13 +22,15 @@ public:
     void startTunneling();
     void closeTunnels();
     bool areTunnelsClosed() const;
-    
+    bool isTunnelingSuccessful() const;
+
 private:
     void establishConnection(std::pair<std::string, int>& address, SOCKET& clientSocket);
     void tunnel2forward();
     void forward2tunnel();
     void stopThreads();
     void closeConnections();
+    bool tunnelingSuccessful = false;
 
 private:
     WSADATA wsaData;
