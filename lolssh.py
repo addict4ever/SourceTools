@@ -19,12 +19,13 @@ def fetch_menu_options(shell):
     menu_options = ""
     while True:
         try:
-            received_data = shell.recv(1024).decode('utf-8')
+            received_data = shell.recv(4096).decode('utf-8', errors='ignore')
             if not received_data:
                 raise ValueError("Connexion fermée par le serveur.")
             logging.info("Reçu du serveur: %s", received_data.strip())
             menu_options += received_data
-            if re.search(r"\d+\.\s+", menu_options):  # Détecte la présence d'options numérotées
+            # Détecter la fin d'un menu avec des indices comme "Entrer <RETOUR>"
+            if "MENU PRINCIPAL" in menu_options or "Choisir avec les fleches" in menu_options:
                 break
         except Exception as e:
             logging.error("Erreur lors de la réception des données: %s", e)
@@ -34,7 +35,8 @@ def fetch_menu_options(shell):
 
 # Fonction pour analyser le menu et en extraire les options
 def parse_menu_options(menu_text):
-    options = re.findall(r"(\d+)\.\s+(.+?)(?=\s+\d+\.|\s*$)", menu_text, re.DOTALL)
+    # Trouver les options numérotées et leurs descriptions
+    options = re.findall(r"(\d+)\.\s+(.+?)(?=\s+\d+\.\s|$)", menu_text, re.DOTALL)
     return options
 
 # Fonction pour gérer la sélection d'une option dans le menu
@@ -61,7 +63,8 @@ def create_menu_gui(menu_text, shell):
 
         # Créer un bouton pour chaque option
         for number, description in options:
-            button = tk.Button(root, text=f"{number}. {description.strip()}",
+            description = description.strip().replace("\n", " ")  # Nettoyer la description
+            button = tk.Button(root, text=f"{number}. {description}",
                                command=lambda opt=number: select_option(opt, shell, root),
                                bg="#61afef", fg="white", font=("Helvetica", 12, "bold"))
             button.pack(padx=10, pady=5, fill=tk.X)
