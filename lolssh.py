@@ -22,10 +22,10 @@ def fetch_menu_options(shell):
             received_data = shell.recv(4096).decode('utf-8', errors='ignore')
             if not received_data:
                 raise ValueError("Connexion fermée par le serveur.")
-            logging.info("Reçu du serveur: %s", received_data.strip())
+            logging.info("Reçu du serveur: %s", repr(received_data))
             menu_options += received_data
-            # Détecter la fin d'un menu avec des indices comme "MENU PRINCIPAL" ou des commandes de retour
-            if re.search(r"Choisir avec les fleches|Entrer 'e'|MENU PRINCIPAL", menu_options):
+            # Vérifier si nous avons atteint la fin du menu
+            if "Entrer <RETOUR>" in menu_options or "MENU PRINCIPAL" in menu_options:
                 break
         except Exception as e:
             logging.error("Erreur lors de la réception des données: %s", e)
@@ -35,9 +35,10 @@ def fetch_menu_options(shell):
 
 # Fonction pour analyser le menu et en extraire les options
 def parse_menu_options(menu_text):
-    # Nettoyer et préparer le texte du menu pour l'analyse
+    # Nettoyer le texte du menu
     menu_text = re.sub(r'\s+', ' ', menu_text)  # Remplacer les multiples espaces par un seul espace
-    options = re.findall(r"(\d+)\.\s+([^0-9]+?)(?=\s+\d+\.\s|$)", menu_text)
+    # Trouver les options numérotées et leurs descriptions
+    options = re.findall(r"(\d+)\.\s+(.+?)(?=\s+\d+\.\s|$)", menu_text)
     return options
 
 # Fonction pour gérer la sélection d'une option dans le menu
