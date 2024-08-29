@@ -24,7 +24,7 @@ def fetch_menu_options(shell):
                 raise ValueError("Connexion fermée par le serveur.")
             logging.info("Reçu du serveur: %s", received_data.strip())
             menu_options += received_data
-            # Détecter la fin d'un menu avec des indices comme "Entrer <RETOUR>"
+            # Détecter la fin d'un menu avec des indices comme "MENU PRINCIPAL"
             if "MENU PRINCIPAL" in menu_options or "Choisir avec les fleches" in menu_options:
                 break
         except Exception as e:
@@ -61,7 +61,7 @@ def create_menu_gui(menu_text, shell):
         root.title("Menu Dynamique")
         root.configure(bg="#282c34")
 
-        # Créer un bouton pour chaque option
+        # Créer un bouton pour chaque option (verticalement)
         for number, description in options:
             description = description.strip().replace("\n", " ")  # Nettoyer la description
             button = tk.Button(root, text=f"{number}. {description}",
