@@ -9,9 +9,9 @@ logging.basicConfig(filename='lol.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Informations de connexion par défaut
-DEFAULT_USERNAME = "lol"
-DEFAULT_PASSWORD = "lol"
-DEFAULT_IP = "12.12.12.151"
+DEFAULT_USERNAME = "theco4"
+DEFAULT_PASSWORD = "theco4"
+DEFAULT_IP = "192.168.101.1"
 DEFAULT_PORT = 22
 
 # Fonction pour se connecter au serveur SSH et récupérer les options de menu
@@ -22,10 +22,10 @@ def fetch_menu_options(shell):
             received_data = shell.recv(4096).decode('utf-8', errors='ignore')
             if not received_data:
                 raise ValueError("Connexion fermée par le serveur.")
-            logging.info("Reçu du serveur: %s", repr(received_data))
+            logging.info("Reçu du serveur: %s", received_data.strip())
             menu_options += received_data
-            # Vérifier si nous avons atteint la fin du menu
-            if "Entrer <RETOUR>" in menu_options or "MENU PRINCIPAL" in menu_options:
+            # Détecter la fin du menu principal avec des indices clairs
+            if "MENU PRINCIPAL" in menu_options and "Entrer <RETOUR>" in menu_options:
                 break
         except Exception as e:
             logging.error("Erreur lors de la réception des données: %s", e)
@@ -35,7 +35,7 @@ def fetch_menu_options(shell):
 
 # Fonction pour analyser le menu et en extraire les options
 def parse_menu_options(menu_text):
-    # Nettoyer le texte du menu
+    # Nettoyer et préparer le texte du menu pour l'analyse
     menu_text = re.sub(r'\s+', ' ', menu_text)  # Remplacer les multiples espaces par un seul espace
     # Trouver les options numérotées et leurs descriptions
     options = re.findall(r"(\d+)\.\s+(.+?)(?=\s+\d+\.\s|$)", menu_text)
