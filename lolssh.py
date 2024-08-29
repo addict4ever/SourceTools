@@ -1,11 +1,12 @@
-limport paramiko
+import paramiko
 import tkinter as tk
 from tkinter import messagebox
 import logging
 import re
 
-# Configuration du logger
-logging.basicConfig(filename='session.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+# Configuration du logger pour le fichier 'lol.log'
+logging.basicConfig(filename='lol.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Informations de connexion par défaut
 DEFAULT_USERNAME = "lol"
@@ -81,12 +82,14 @@ def main():
         
         shell = ssh.invoke_shell()
         shell.send("\n")  # Réveiller le terminal
+        logging.info("Connexion SSH établie avec le serveur %s", DEFAULT_IP)
         
         # Récupérer et afficher le menu principal
         menu_principal = fetch_menu_options(shell)
         create_menu_gui(menu_principal, shell)
         
     except Exception as e:
+        logging.error("Erreur de connexion: %s", e)
         messagebox.showerror("Erreur de connexion", f"Impossible de se connecter au serveur : {str(e)}")
 
 # Exécuter le programme
