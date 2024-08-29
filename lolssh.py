@@ -11,8 +11,11 @@ DEFAULT_PORT = 22
 # Fonction pour se connecter au serveur SSH et récupérer les options de menu
 def fetch_menu_options(shell):
     menu_options = ""
-    while not menu_options.strip():  # Attendre que les options soient affichées
-        menu_options = shell.recv(1024).decode('utf-8')
+    while True:
+        received_data = shell.recv(1024).decode('utf-8')
+        menu_options += received_data
+        if "MENU PRINCIPAL" in menu_options.upper():  # Vérification du menu principal
+            break
     return menu_options
 
 # Fonction pour gérer la sélection d'une option dans le menu principal
@@ -55,7 +58,8 @@ def main():
         
         # Récupérer et afficher le menu principal
         menu_principal = fetch_menu_options(shell)
-        if "menu principal" in menu_principal.lower():
+        if "MENU PRINCIPAL" in menu_principal.upper():
+            messagebox.showinfo("Connexion réussie", "Le menu principal a été détecté.")
             create_menu_gui(menu_principal, shell)
         else:
             messagebox.showerror("Erreur", "Menu principal non détecté")
