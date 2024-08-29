@@ -2,7 +2,6 @@ import paramiko
 import tkinter as tk
 from tkinter import messagebox
 import logging
-import json
 
 # Configuration du logger
 logging.basicConfig(filename='session.log', level=logging.INFO, format='%(asctime)s - %(message)s')
