@@ -1,0 +1,32 @@
+{
+    "options": [
+        {"text": "1. Fichier des clients", "command": "1"},
+        {"text": "2. Journal des ventes", "command": "2"},
+        {"text": "3. Journal caisse-recettes", "command": "3"},
+        {"text": "4. Modification d'un code client", "command": "4"},
+        {"text": "5. Fusion d'un code client", "command": "5"},
+        {"text": "6. Table des escomptes", "command": "6"},
+        {"text": "7. Exceptions", "command": "7"},
+        {"text": "8. Tables des territoires", "command": "8"},
+        {"text": "9. Visionnement Journal des ventes", "command": "9"},
+        {"text": "10. TRANSFERT DES VENTES DATE AU J/G", "command": "10"},
+        {"text": "11. TRANSFERT DES RECETTES AU J/G", "command": "11"},
+        {"text": "12. Fichier des clients importation", "command": "12"},
+        {"text": "13. COMMANDES DE VENTES", "command": "13"},
+        {"text": "14. FACTURATION", "command": "14"},
+        {"text": "15. IMPRESSION DES LISTES DE CLIENTS", "command": "15"},
+        {"text": "16. IMPRESSION DES JOURNAUX", "command": "16"},
+        {"text": "17. IMPRESSION DE L'AGE DES COMPTES", "command": "17"},
+        {"text": "18. IMPRESSION DES ETATS DE COMPTES", "command": "18"},
+        {"text": "19. IMPRESSION DES ETIQUETTES", "command": "19"},
+        {"text": "20. X- IMPRESSION FAX COVER SHEET", "command": "20"},
+        {"text": "21. Table des types de clients", "command": "21"},
+        {"text": "22. Verification factures comptant", "command": "22"},
+        {"text": "23. Gestion des groupes de clients", "command": "23"},
+        {"text": "24. Fichier client ancien", "command": "24"},
+        {"text": "25. Gestion des types de clients", "command": "25"},
+        {"text": "26. -", "command": "26"},
+        {"text": "27. FRAIS D'ADMINISTRATION", "command": "27"},
+        {"text": "28. ANALYSES DES VENTES", "command": "28"}
+    ]
+}
