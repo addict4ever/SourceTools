@@ -1,0 +1,18 @@
+{
+    "options": [
+        {"text": "1. LE GRAND LIVRE", "command": "1"},
+        {"text": "2. LES CLIENTS", "command": "2"},
+        {"text": "3. LES FOURNISSEURS", "command": "3"},
+        {"text": "4. LES STOCKS", "command": "4"},
+        {"text": "5. LES SALAIRES", "command": "5"},
+        {"text": "6. LE SYSTEME", "command": "6"},
+        {"text": "7. LES UTILITAIRES", "command": "7"},
+        {"text": "8. MESSAGERIE", "command": "8"},
+        {"text": "9. LE SERVICE", "command": "9"},
+        {"text": "10. CENTRE DE CONTACTS", "command": "10"},
+        {"text": "11. MENU SPECIAL", "command": "11"},
+        {"text": "12. -", "command": "12"},
+        {"text": "13. -", "command": "13"},
+        {"text": "14. Verification des LOCK", "command": "14"}
+    ]
+}
