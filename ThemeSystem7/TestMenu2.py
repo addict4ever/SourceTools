@@ -121,6 +121,13 @@ def create_menu_gui(menu_text, shell):
 
 # Fonction principale pour se connecter et démarrer l'interface
 def main():
+    menu_principal = """
+    1. Option 1
+    2. Option 2
+    3. Option 3
+    e. Retour
+    MENU PRINCIPAL
+    """
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -130,9 +137,7 @@ def main():
         shell.send("\n")  # Réveiller le terminal
         logging.info("Connexion SSH établie avec le serveur %s", DEFAULT_IP)
         
-        # Récupérer et afficher le menu principal
-        menu_principal = fetch_menu_options(shell)
-        save_menu_to_file(menu_principal)  # Sauvegarder le menu principal
+        # Afficher le menu principal préchargé
         create_menu_gui(menu_principal, shell)
         
     except Exception as e:
@@ -142,4 +147,3 @@ def main():
 # Exécuter le programme
 if __name__ == "__main__":
     main()
-
