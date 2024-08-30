@@ -10,9 +10,9 @@ logging.basicConfig(filename='lol.log', level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Informations de connexion par défaut
-DEFAULT_USERNAME = "theco4"
-DEFAULT_PASSWORD = "theco4"
-DEFAULT_IP = "192.168.101.1"
+DEFAULT_USERNAME = "lol"
+DEFAULT_PASSWORD = "lol"
+DEFAULT_IP = "12.12.12.1"
 DEFAULT_PORT = 22
 SAVE_MENU_PATH = "saved_menus"
 
