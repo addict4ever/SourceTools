@@ -1,264 +1,76 @@
 import paramiko
-import tkinter as tk
-from tkinter import messagebox, scrolledtext
-import logging
-import re
 import json
-import os
+import tkinter as tk
+from tkinter import messagebox
 
-# Configuration du logger
-logging.basicConfig(filename='session.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+# Charger la configuration depuis config.json
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
 
-# Chargement de la configuration depuis config.json
-def load_config():
+ip_address = config.get('ip_address')
+username = config.get('username')
+password = config.get('password')
+port = config.get('port', 22)  # Le port 22 est utilisé par défaut si non spécifié
+
+# Connexion SSH
+client = paramiko.SSHClient()
+client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+client.connect(ip_address, port=port, username=username, password=password)
+
+# Interface graphique
+root = tk.Tk()
+root.title("Menu SSH")
+
+def send_command(command):
+    stdin, stdout, stderr = client.exec_command(command)
+    output = stdout.read().decode()
+    if output:
+        parse_and_display_menu(output)
+    else:
+        messagebox.showinfo("Info", "Aucun menu reçu après l'exécution de la commande.")
+
+def parse_and_display_menu(menu_data):
     try:
-        with open("config.json", "r") as file:
-            config = json.load(file)
-            return config
-    except FileNotFoundError:
-        logging.error("Le fichier config.json est introuvable.")
-        messagebox.showerror("Erreur", "Le fichier config.json est introuvable.")
-        return None
+        menu = json.loads(menu_data)
+        for widget in root.winfo_children():
+            widget.destroy()  # Effacer les anciens widgets
+
+        tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack(pady=10)
+        
+        for option in menu["options"]:
+            button = tk.Button(root, text=option["text"], command=lambda cmd=option["command"]: send_command(cmd))
+            button.pack(pady=5, fill="x")
     except json.JSONDecodeError:
-        logging.error("Erreur de décodage JSON dans config.json.")
-        messagebox.showerror("Erreur", "Le fichier config.json contient des erreurs de formatage.")
-        return None
+        messagebox.showerror("Erreur", "Erreur lors de l'analyse du menu JSON.")
+        
+def initial_menu():
+    # Simuler la réception du menu principal initial
+    menu_principal = """
+    {
+        "options": [
+            {"text": "1. LE GRAND LIVRE", "command": "1"},
+            {"text": "2. LES CLIENTS", "command": "2"},
+            {"text": "3. LES FOURNISSEURS", "command": "3"},
+            {"text": "4. LES STOCKS", "command": "4"},
+            {"text": "5. LES SALAIRES", "command": "5"},
+            {"text": "6. LE SYSTEME", "command": "6"},
+            {"text": "7. LES UTILITAIRES", "command": "7"},
+            {"text": "8. MESSAGERIE", "command": "8"},
+            {"text": "9. LE SERVICE", "command": "9"},
+            {"text": "10. CENTRE DE CONTACTS", "command": "10"},
+            {"text": "11. MENU SPECIAL", "command": "11"},
+            {"text": "12. -", "command": "12"},
+            {"text": "13. -", "command": "13"},
+            {"text": "14. Verification des LOCK", "command": "14"}
+        ]
+    }
+    """
+    parse_and_display_menu(menu_principal)
 
-# Classe pour gérer l'historique de navigation
-class NavigationHistory:
-    def __init__(self):
-        self.history = []
-        self.current_index = -1
+# Afficher le menu principal initial
+initial_menu()
 
-    def add_menu(self, menu_text):
-        # Supprime tous les éléments après l'index actuel (cas d'une navigation en arrière)
-        self.history = self.history[:self.current_index + 1]
-        self.history.append(menu_text)
-        self.current_index += 1
+root.mainloop()
 
-    def go_back(self):
-        if self.current_index > 0:
-            self.current_index -= 1
-            return self.history[self.current_index]
-        return None
-
-    def go_forward(self):
-        if self.current_index < len(self.history) - 1:
-            self.current_index += 1
-            return self.history[self.current_index]
-        return None
-
-# Fonction pour se connecter au serveur SSH et récupérer les options de menu
-def fetch_menu_options(shell):
-    menu_options = ""
-    while True:
-        try:
-            received_data = shell.recv(4096).decode('utf-8', errors='ignore')
-            if not received_data:
-                raise ValueError("Connexion fermée par le serveur.")
-            logging.info("Reçu du serveur: %s", received_data.strip())
-            menu_options += received_data
-            # Détecter la fin d'un menu avec des indices comme "Entrer <RETOUR>"
-            if "Entrer <RETOUR>" in menu_options or "Choisir avec les fleches" in menu_options:
-                break
-        except Exception as e:
-            logging.error("Erreur lors de la réception des données: %s", e)
-            messagebox.showerror("Erreur", f"Erreur de communication: {str(e)}")
-            break
-    return menu_options
-
-# Fonction pour analyser le menu et en extraire les options
-def parse_menu_options(menu_text):
-    options = re.findall(r"(\d+)\.\s+(.+?)(?=\s+\d+\.\s|$)", menu_text, re.DOTALL)
-    return options
-
-# Fonction pour gérer la sélection d'une option dans le menu
-def select_option(option, shell, root=None, history=None):
-    try:
-        logging.info("Envoi de la commande: %s", option)
-        shell.send(option + "\n")
-        submenu_options = fetch_menu_options(shell)
-        if history:
-            history.add_menu(submenu_options)
-        if root:
-            root.destroy()  # Fermer la fenêtre actuelle
-        create_menu_gui(submenu_options, shell, history)
-    except Exception as e:
-        logging.error("Erreur lors de l'envoi de la commande: %s", e)
-        messagebox.showerror("Erreur", f"Erreur lors de l'envoi de la commande: {str(e)}")
-
-# Fonction pour créer une GUI en fonction des options de menu
-def create_menu_gui(menu_text, shell, history=None):
-    options = parse_menu_options(menu_text)
-
-    if options:
-        root = tk.Tk()
-        root.title("Menu Dynamique")
-        root.configure(bg="#282c34")
-
-        # Ajouter des boutons pour la navigation dans l'historique
-        if history:
-            nav_frame = tk.Frame(root, bg="#282c34")
-            nav_frame.pack(fill=tk.X, pady=5)
-
-            back_button = tk.Button(nav_frame, text="◀ Retour", command=lambda: go_back(history, shell, root))
-            back_button.pack(side=tk.LEFT, padx=5)
-
-            forward_button = tk.Button(nav_frame, text="Suivant ▶", command=lambda: go_forward(history, shell, root))
-            forward_button.pack(side=tk.LEFT, padx=5)
-
-        # Créer un champ de recherche pour filtrer les options
-        search_var = tk.StringVar()
-        search_var.trace("w", lambda name, index, mode, sv=search_var: filter_options(sv, options, button_frame, shell, root))
-        search_entry = tk.Entry(root, textvariable=search_var, font=("Helvetica", 12))
-        search_entry.pack(padx=10, pady=5, fill=tk.X)
-
-        # Conteneur pour les boutons d'options
-        button_frame = tk.Frame(root, bg="#282c34")
-        button_frame.pack(fill=tk.BOTH, expand=True)
-
-        # Créer un bouton pour chaque option
-        for number, description in options:
-            description = description.strip().replace("\n", " ")
-            button = tk.Button(button_frame, text=f"{number}. {description}",
-                               command=lambda opt=number: select_option(opt, shell, root, history),
-                               bg="#61afef", fg="white", font=("Helvetica", 12, "bold"))
-            button.pack(padx=10, pady=5, fill=tk.X)
-
-        # Bouton de retour stylé
-        button_back = tk.Button(root, text="Retour", command=lambda: select_option('e', shell, root, history),
-                                bg="#98c379", fg="white", font=("Helvetica", 12, "bold"))
-        button_back.pack(padx=10, pady=5, fill=tk.X)
-
-        # Bouton pour afficher les logs
-        button_logs = tk.Button(root, text="Afficher les Logs", command=show_logs, bg="#e06c75", fg="white", font=("Helvetica", 12, "bold"))
-        button_logs.pack(padx=10, pady=5, fill=tk.X)
-
-        # Bouton pour l'édition offline des menus
-        button_edit_offline = tk.Button(root, text="Édition Offline", command=edit_menu_offline, bg="#c678dd", fg="white", font=("Helvetica", 12, "bold"))
-        button_edit_offline.pack(padx=10, pady=5, fill=tk.X)
-
-        root.mainloop()
-
-def filter_options(search_var, options, button_frame, shell, root):
-    search_term = search_var.get().lower()
-    for widget in button_frame.winfo_children():
-        widget.destroy()  # Clear previous buttons
-
-    for number, description in options:
-        if search_term in description.lower():
-            button = tk.Button(button_frame, text=f"{number}. {description}",
-                               command=lambda opt=number: select_option(opt, shell, root),
-                               bg="#61afef", fg="white", font=("Helvetica", 12, "bold"))
-            button.pack(padx=10, pady=5, fill=tk.X)
-
-def go_back(history, shell, root):
-    previous_menu = history.go_back()
-    if previous_menu:
-        root.destroy()
-        create_menu_gui(previous_menu, shell, history)
-
-def go_forward(history, shell, root):
-    next_menu = history.go_forward()
-    if next_menu:
-        root.destroy()
-        create_menu_gui(next_menu, shell, history)
-
-def show_logs():
-    log_window = tk.Toplevel()
-    log_window.title("Logs")
-    log_text = scrolledtext.ScrolledText(log_window, width=100, height=30)
-    log_text.pack()
-
-    try:
-        with open("session.log", "r") as log_file:
-            logs = log_file.read()
-        log_text.insert(tk.END, logs)
-    except Exception as e:
-        logging.error(f"Erreur lors du chargement des logs: {e}")
-        log_text.insert(tk.END, "Erreur lors du chargement des logs.")
-
-# Fonction pour éditer les menus offline
-def edit_menu_offline():
-    edit_window = tk.Toplevel()
-    edit_window.title("Édition Offline")
-    edit_frame = tk.Frame(edit_window)
-    edit_frame.pack(fill=tk.BOTH, expand=True)
-
-    # Sélectionner un menu JSON existant
-    def load_menu_json():
-        menu_file = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
-        if menu_file:
-            with open(menu_file, "r") as file:
-                menu_data = json.load(file)
-                display_menu_editor(menu_data, menu_file)
-
-    # Afficher l'éditeur de menus
-    def display_menu_editor(menu_data, menu_file):
-        for widget in edit_frame.winfo_children():
-            widget.destroy()  # Clear previous widgets
-
-        # Afficher les options actuelles
-        for i, option in enumerate(menu_data.get("options", [])):
-            option_frame = tk.Frame(edit_frame)
-            option_frame.pack(fill=tk.X, pady=5)
-
-            tk.Label(option_frame, text=f"Option {i + 1}:").pack(side=tk.LEFT)
-            text_entry = tk.Entry(option_frame)
-            text_entry.insert(0, option.get("text", ""))
-            text_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-
-            command_entry = tk.Entry(option_frame)
-            command_entry.insert(0, option.get("command", ""))
-            command_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-
-            save_button = tk.Button(option_frame, text="Save", command=lambda idx=i, t=text_entry, c=command_entry: save_option(menu_data, idx, t, c, menu_file))
-            save_button.pack(side=tk.RIGHT, padx=5)
-
-    def save_option(menu_data, index, text_entry, command_entry, menu_file):
-        menu_data["options"][index]["text"] = text_entry.get()
-        menu_data["options"][index]["command"] = command_entry.get()
-
-        with open(menu_file, "w") as file:
-            json.dump(menu_data, file, indent=4)
-
-        logging.info(f"Option {index + 1} mise à jour dans {menu_file}")
-        messagebox.showinfo("Sauvegarde", f"Option {index + 1} mise à jour avec succès.")
-
-    load_button = tk.Button(edit_window, text="Charger Menu JSON", command=load_menu_json)
-    load_button.pack(pady=10)
-
-# Fonction principale pour se connecter et démarrer l'interface
-def main():
-    config = load_config()
-    if not config:
-        return
-
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(
-            hostname=config["hostname"],
-            username=config["username"],
-            password=config["password"],
-            port=config["port"]
-        )
-
-        shell = ssh.invoke_shell()
-        shell.send("\n")  # Réveiller le terminal
-        logging.info("Connexion SSH établie avec le serveur %s", config["hostname"])
-
-        history = NavigationHistory()
-
-        # Récupérer et afficher le menu principal
-        menu_principal = fetch_menu_options(shell)
-        history.add_menu(menu_principal)
-        create_menu_gui(menu_principal, shell, history)
-
-    except Exception as e:
-        logging.error("Erreur de connexion: %s", e)
-        messagebox.showerror("Erreur de connexion", f"Impossible de se connecter au serveur : {str(e)}")
-
-# Exécuter le programme
-if __name__ == "__main__":
-    main()
+# Fermer la connexion SSH à la fin
+client.close()
