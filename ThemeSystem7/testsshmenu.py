@@ -1,11 +1,10 @@
 import paramiko
 import tkinter as tk
-from tkinter import messagebox, filedialog, simpledialog, scrolledtext
+from tkinter import messagebox, scrolledtext
 import logging
 import re
 import json
 import os
-from paramiko import SCPClient
 
 # Configuration du logger
 logging.basicConfig(filename='session.log', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -139,14 +138,6 @@ def create_menu_gui(menu_text, shell, history=None):
         button_edit_offline = tk.Button(root, text="Édition Offline", command=edit_menu_offline, bg="#c678dd", fg="white", font=("Helvetica", 12, "bold"))
         button_edit_offline.pack(padx=10, pady=5, fill=tk.X)
 
-        # Bouton pour télécharger un fichier via SCP
-        button_scp_download = tk.Button(root, text="Télécharger Fichier", command=lambda: scp_download(shell), bg="#56b6c2", fg="white", font=("Helvetica", 12, "bold"))
-        button_scp_download.pack(padx=10, pady=5, fill=tk.X)
-
-        # Bouton pour uploader un fichier via SCP
-        button_scp_upload = tk.Button(root, text="Uploader Fichier", command=lambda: scp_upload(shell), bg="#56b6c2", fg="white", font=("Helvetica", 12, "bold"))
-        button_scp_upload.pack(padx=10, pady=5, fill=tk.X)
-
         root.mainloop()
 
 def filter_options(search_var, options, button_frame, shell, root):
@@ -236,38 +227,6 @@ def edit_menu_offline():
 
     load_button = tk.Button(edit_window, text="Charger Menu JSON", command=load_menu_json)
     load_button.pack(pady=10)
-
-# Fonction de téléchargement de fichier via SCP
-def scp_download(shell):
-    try:
-        scp = SCPClient(shell.get_transport())
-        remote_file = simpledialog.askstring("Téléchargement SCP", "Entrez le chemin complet du fichier à télécharger depuis le serveur :")
-        local_path = filedialog.askdirectory(title="Sélectionnez un dossier pour enregistrer le fichier téléchargé")
-
-        if remote_file and local_path:
-            scp.get(remote_file, local_path)
-            logging.info(f"Fichier téléchargé : {remote_file} vers {local_path}")
-            messagebox.showinfo("Téléchargement SCP", f"Fichier téléchargé : {remote_file} vers {local_path}")
-        scp.close()
-    except Exception as e:
-        logging.error(f"Erreur lors du téléchargement SCP : {e}")
-        messagebox.showerror("Erreur", f"Erreur lors du téléchargement SCP : {str(e)}")
-
-# Fonction d'upload de fichier via SCP
-def scp_upload(shell):
-    try:
-        scp = SCPClient(shell.get_transport())
-        local_file = filedialog.askopenfilename(title="Sélectionnez un fichier à uploader vers le serveur")
-        remote_path = simpledialog.askstring("Upload SCP", "Entrez le chemin complet où le fichier doit être uploadé sur le serveur :")
-
-        if local_file and remote_path:
-            scp.put(local_file, remote_path)
-            logging.info(f"Fichier uploadé : {local_file} vers {remote_path}")
-            messagebox.showinfo("Upload SCP", f"Fichier uploadé : {local_file} vers {remote_path}")
-        scp.close()
-    except Exception as e:
-        logging.error(f"Erreur lors de l'upload SCP : {e}")
-        messagebox.showerror("Erreur", f"Erreur lors de l'upload SCP : {str(e)}")
 
 # Fonction principale pour se connecter et démarrer l'interface
 def main():
