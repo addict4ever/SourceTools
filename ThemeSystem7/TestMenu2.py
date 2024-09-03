@@ -13,7 +13,7 @@ logging.basicConfig(filename='lolssh.log', level=logging.INFO,
 # Charger les credentials depuis un fichier JSON
 def load_credentials():
     try:
-        with open('credentials.json', 'r') as file:
+        with open('config.json', 'r') as file:
             credentials = json.load(file)
         return credentials
     except Exception as e:
@@ -57,7 +57,7 @@ def clean_output(output):
 def parse_menu_output(output):
     clean_text = clean_output(output)
     # Rechercher les options de menu sous la forme de numéros suivis de texte
-    menu_pattern = r"^\s*(\d+)\.\s+(.*?)\s*$"
+    menu_pattern = r"^\s*(\d+)\.\s+(.*)$"
     menu_options = re.findall(menu_pattern, clean_text, re.MULTILINE)
     return {int(num): text for num, text in menu_options}
 
@@ -70,7 +70,7 @@ def detect_menu_start(output):
         # Tout ce qui vient après ce point est considéré comme le menu
         menu_output = output[match.end():]
         return menu_output
-    return output
+    return None
 
 # Générer les boutons de menu dynamiquement
 def display_menu(root, menu_output):
@@ -97,13 +97,11 @@ def display_menu(root, menu_output):
     # Bouton pour quitter l'application
     tk.Button(root, text="Quitter", command=root.quit).pack(fill=tk.X, padx=10, pady=5)
 
-# Envoyer la commande sélectionnée au serveur et recevoir le prochain menu
+# Envoyer la commande sélectionnée au serveur
 def send_command_to_server(option_number):
     command = str(option_number) + '\n'  # Envoyer le numéro de l'option sélectionnée
     logging.info(f"Envoyé au serveur : {command}")
     channel.send(command)
-    # Lire le flux pour obtenir le prochain menu
-    read_ssh_channel(channel, menu_callback)
 
 # Fonction de rappel pour mettre à jour le GUI avec les nouvelles options de menu
 def menu_callback(output):
