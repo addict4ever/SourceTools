@@ -57,9 +57,9 @@ def clean_output(output):
 def parse_menu_output(output):
     clean_text = clean_output(output)
     # Rechercher les options de menu sous la forme de numéros suivis de texte
-    menu_pattern = r"^\s*(\d+)\.\s+(.*)$"
+    menu_pattern = r"^\s*(\d+)\.\s+([^\n\r]+)"
     menu_options = re.findall(menu_pattern, clean_text, re.MULTILINE)
-    return {int(num): text for num, text in menu_options}
+    return {int(num): text.strip() for num, text in menu_options}
 
 # Fonction pour détecter le début du menu après le message d'accueil
 def detect_menu_start(output):
