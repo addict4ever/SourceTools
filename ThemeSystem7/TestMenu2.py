@@ -3,11 +3,11 @@ import tkinter as tk
 from tkinter import messagebox
 import re
 import json
-import logging
 import threading
+import logging
 
 # Configuration du logging dans un fichier
-logging.basicConfig(filename='lolssh.log', level=logging.INFO, 
+logging.basicConfig(filename='lolssh.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Charger les credentials depuis un fichier JSON
@@ -39,7 +39,9 @@ def read_ssh_channel(channel, callback):
     output = ""
     while True:
         if channel.recv_ready():
-            output += channel.recv(1024).decode('utf-8')
+            received_data = channel.recv(1024).decode('utf-8')
+            logging.info(f"Reçu du serveur : {received_data}")
+            output += received_data
             callback(output)
             output = ""  # Réinitialiser la sortie après chaque traitement
         else:
@@ -54,7 +56,7 @@ def parse_menu_output(output):
 
 # Fonction pour détecter le début du menu après le message d'accueil
 def detect_menu_start(output):
-    # Supposons que le menu commence après "MENU PRINCIPAL"
+    # Supposons que le menu commence après "MENU PRINCIPAL" ou similaire
     start_pattern = r"MENU PRINCIPAL"
     match = re.search(start_pattern, output, re.IGNORECASE)
     if match:
@@ -64,7 +66,7 @@ def detect_menu_start(output):
     return None
 
 # Générer les boutons de menu dynamiquement
-def display_menu(root, client, menu_output):
+def display_menu(root, menu_output):
     for widget in root.winfo_children():
         widget.destroy()
 
@@ -77,25 +79,26 @@ def display_menu(root, client, menu_output):
         tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack()
     else:
         for num, option in menu_options.items():
-            button = tk.Button(root, text=option, command=lambda n=num: select_menu_option(root, client, n))
+            button = tk.Button(root, text=option, command=lambda n=num: send_command_to_server(n))
             button.pack(fill=tk.X)
 
     tk.Button(root, text="Quitter", command=root.quit).pack(fill=tk.X)
 
-# Sélectionner une option de menu
-def select_menu_option(root, client, option_number):
+# Envoyer la commande sélectionnée au serveur
+def send_command_to_server(option_number):
     command = str(option_number) + '\n'  # Envoyer le numéro de l'option sélectionnée
-    client.get_transport().open_session().exec_command(command)
+    logging.info(f"Envoyé au serveur : {command}")
+    channel.send(command)
 
 # Fonction de rappel pour mettre à jour le GUI avec les nouvelles options de menu
 def menu_callback(output):
     menu_output = detect_menu_start(output)
     if menu_output:
-        display_menu(root, client, menu_output)
+        display_menu(root, menu_output)
 
 # Fenêtre principale de l'application
 def main():
-    global root, client
+    global root, channel
 
     credentials = load_credentials()
 
