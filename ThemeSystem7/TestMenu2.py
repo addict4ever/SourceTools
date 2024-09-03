@@ -35,16 +35,25 @@ def ssh_connect(credentials):
 
 # Exécuter une commande SSH et capturer la sortie
 def execute_command(client, command):
-    stdin, stdout, stderr = client.exec_command(command)
-    output = stdout.read().decode('utf-8')
+    channel = client.invoke_shell()
+    channel.send(command + '\n')
+    
+    output = ''
+    while not channel.recv_ready():
+        pass
+    
+    while channel.recv_ready():
+        output += channel.recv(1024).decode('utf-8')
+    
     logging.info(f"Commande exécutée : {command}\nRésultat : {output}")
     return output
 
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
-    menu_pattern = r"^\d+\.\s+(.*)$"
+    # Rechercher les options de menu sous la forme de numéros suivis de texte
+    menu_pattern = r"^\s*(\d+)\.\s+(.*)$"
     menu_options = re.findall(menu_pattern, output, re.MULTILINE)
-    return menu_options
+    return {int(num): text for num, text in menu_options}
 
 # Générer les boutons de menu dynamiquement
 def display_menu(root, client, output):
@@ -55,18 +64,21 @@ def display_menu(root, client, output):
     tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
 
     menu_options = parse_menu_output(output)
-    
-    for i, option in enumerate(menu_options):
-        button = tk.Button(root, text=option, command=lambda idx=i: select_menu_option(root, client, idx + 1))
-        button.pack()
 
-    tk.Button(root, text="Quitter", command=root.quit).pack()
+    if not menu_options:
+        tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack()
+    else:
+        for num, option in menu_options.items():
+            button = tk.Button(root, text=option, command=lambda n=num: select_menu_option(root, client, n))
+            button.pack(fill=tk.X)
+
+    tk.Button(root, text="Quitter", command=root.quit).pack(fill=tk.X)
 
 # Sélectionner une option de menu
 def select_menu_option(root, client, option_number):
     command = str(option_number) + '\n'  # Envoyer le numéro de l'option sélectionnée
     output = execute_command(client, command)
-    display_menu(root, client, output)
+    display_menu(root, client, output)  # Afficher le nouveau menu reçu
 
 # Fenêtre principale de l'application
 def main():
@@ -79,8 +91,8 @@ def main():
         client = ssh_connect(credentials)
 
         if client:
-            # Attendre l'affichage initial du menu
-            output = execute_command(client, '\n')  # Appuyer sur "Entrée" pour démarrer le menu
+            # Capturer le flux en temps réel pour récupérer les menus après connexion
+            output = execute_command(client, '')  # Capturer le premier menu après connexion
             display_menu(root, client, output)
 
         root.mainloop()
