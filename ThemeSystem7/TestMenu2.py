@@ -54,19 +54,19 @@ def read_ssh_channel(channel, callback):
         else:
             continue
 
-# Fonction pour nettoyer les séquences d'échappement ANSI et autres caractères de contrôle
+# Fonction pour nettoyer les séquences d'échappement ANSI tout en préservant les espaces importants
 def clean_output(output):
     ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
     clean_text = ansi_escape.sub('', output)
-    return clean_text.strip()
+    return clean_text  # Ne pas supprimer les espaces ici
 
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
     clean_text = clean_output(output)
     
     # Rechercher les options de menu sous la forme de numéros suivis de texte.
-    # Le regex suivant cherche les numéros suivis d'un texte, même si les options sont collées.
-    menu_pattern = r"(\d+)\.\s+([^\d]+)"
+    # Le regex suivant cherche les numéros suivis d'un ou plusieurs espaces et du texte, même si les options sont collées.
+    menu_pattern = r"(\d+)\.\s{2,}([^\n]+)"
     menu_options = re.findall(menu_pattern, clean_text)
     
     # Log menu options
