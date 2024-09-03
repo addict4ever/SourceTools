@@ -74,22 +74,28 @@ def detect_menu_start(output):
 
 # Générer les boutons de menu dynamiquement
 def display_menu(root, menu_output):
+    # Effacer les widgets existants
     for widget in root.winfo_children():
         widget.destroy()
 
+    # Titre et sous-titre du menu
     tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack()
     tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
 
+    # Analyser les options de menu
     menu_options = parse_menu_output(menu_output)
 
+    # Générer un bouton pour chaque option détectée
     if not menu_options:
         tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack()
     else:
         for num, option in menu_options.items():
-            button = tk.Button(root, text=option, command=lambda n=num: send_command_to_server(n))
-            button.pack(fill=tk.X)
+            # Créer un bouton pour chaque option de menu
+            button = tk.Button(root, text=f"{num}. {option}", command=lambda n=num: send_command_to_server(n))
+            button.pack(fill=tk.X, padx=10, pady=5)
 
-    tk.Button(root, text="Quitter", command=root.quit).pack(fill=tk.X)
+    # Bouton pour quitter l'application
+    tk.Button(root, text="Quitter", command=root.quit).pack(fill=tk.X, padx=10, pady=5)
 
 # Envoyer la commande sélectionnée au serveur
 def send_command_to_server(option_number):
