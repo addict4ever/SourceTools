@@ -79,15 +79,15 @@ def display_menu(root, menu_output):
         widget.destroy()
 
     # Titre et sous-titre du menu
-    tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack()
-    tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
+    tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack(pady=10)
+    tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack(pady=5)
 
     # Analyser les options de menu
     menu_options = parse_menu_output(menu_output)
 
     # Générer un bouton pour chaque option détectée
     if not menu_options:
-        tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack()
+        tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack(pady=5)
     else:
         for num, option in menu_options.items():
             # Créer un bouton pour chaque option de menu
