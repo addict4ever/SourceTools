@@ -37,11 +37,11 @@ def ssh_connect(credentials):
 def execute_command(client, command):
     channel = client.invoke_shell()
     channel.send(command + '\n')
-    
-    output = ''
+
+    output = ""
     while not channel.recv_ready():
         pass
-    
+
     while channel.recv_ready():
         output += channel.recv(1024).decode('utf-8')
     
@@ -55,6 +55,17 @@ def parse_menu_output(output):
     menu_options = re.findall(menu_pattern, output, re.MULTILINE)
     return {int(num): text for num, text in menu_options}
 
+# Fonction pour détecter et ignorer les messages d'accueil avant le menu
+def detect_menu_start(output):
+    # Supposons que le menu commence après "Have a lot of fun..." ou un message similaire
+    start_pattern = r"Have a lot of fun.*\n"
+    match = re.search(start_pattern, output, re.IGNORECASE)
+    if match:
+        # Tout ce qui vient après le message d'accueil est considéré comme le menu
+        menu_output = output[match.end():]
+        return menu_output
+    return output
+
 # Générer les boutons de menu dynamiquement
 def display_menu(root, client, output):
     for widget in root.winfo_children():
@@ -63,7 +74,10 @@ def display_menu(root, client, output):
     tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack()
     tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
 
-    menu_options = parse_menu_output(output)
+    # Détecter le début du menu et ignorer les messages d'accueil
+    menu_output = detect_menu_start(output)
+    
+    menu_options = parse_menu_output(menu_output)
 
     if not menu_options:
         tk.Label(root, text="Aucune option de menu trouvée.", font=("Arial", 14)).pack()
@@ -92,7 +106,7 @@ def main():
 
         if client:
             # Capturer le flux en temps réel pour récupérer les menus après connexion
-            output = execute_command(client, '')  # Capturer le premier menu après connexion
+            output = execute_command(client, '')  # Capturer le premier menu après le message d'accueil
             display_menu(root, client, output)
 
         root.mainloop()
