@@ -4,6 +4,7 @@ from tkinter import messagebox
 import re
 import json
 import logging
+import threading
 
 # Configuration du logging dans un fichier
 logging.basicConfig(filename='lolssh.log', level=logging.INFO, 
@@ -33,21 +34,16 @@ def ssh_connect(credentials):
         messagebox.showerror("Erreur", f"Connexion SSH échouée : {str(e)}")
         return None
 
-# Exécuter une commande SSH et capturer la sortie
-def execute_command(client, command):
-    channel = client.invoke_shell()
-    if command:
-        channel.send(command + '\n')
-    
+# Lire le flux SSH de manière continue
+def read_ssh_channel(channel, callback):
     output = ""
-    while not channel.recv_ready():
-        pass
-
-    while channel.recv_ready():
-        output += channel.recv(1024).decode('utf-8')
-    
-    logging.info(f"Commande exécutée : {command}\nRésultat : {output}")
-    return output
+    while True:
+        if channel.recv_ready():
+            output += channel.recv(1024).decode('utf-8')
+            callback(output)
+            output = ""  # Réinitialiser la sortie après chaque traitement
+        else:
+            continue
 
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
@@ -65,19 +61,16 @@ def detect_menu_start(output):
         # Tout ce qui vient après ce point est considéré comme le menu
         menu_output = output[match.end():]
         return menu_output
-    return output
+    return None
 
 # Générer les boutons de menu dynamiquement
-def display_menu(root, client, output):
+def display_menu(root, client, menu_output):
     for widget in root.winfo_children():
         widget.destroy()
 
     tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack()
     tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
 
-    # Détecter le début du menu et ignorer les messages d'accueil
-    menu_output = detect_menu_start(output)
-    
     menu_options = parse_menu_output(menu_output)
 
     if not menu_options:
@@ -92,11 +85,18 @@ def display_menu(root, client, output):
 # Sélectionner une option de menu
 def select_menu_option(root, client, option_number):
     command = str(option_number) + '\n'  # Envoyer le numéro de l'option sélectionnée
-    output = execute_command(client, command)
-    display_menu(root, client, output)  # Afficher le nouveau menu reçu
+    client.get_transport().open_session().exec_command(command)
+
+# Fonction de rappel pour mettre à jour le GUI avec les nouvelles options de menu
+def menu_callback(output):
+    menu_output = detect_menu_start(output)
+    if menu_output:
+        display_menu(root, client, menu_output)
 
 # Fenêtre principale de l'application
 def main():
+    global root, client
+
     credentials = load_credentials()
 
     if credentials:
@@ -106,11 +106,14 @@ def main():
         client = ssh_connect(credentials)
 
         if client:
-            # Capturer le flux en temps réel pour récupérer les menus après connexion
-            output = execute_command(client, '')  # Capturer le premier menu après le message d'accueil
-            display_menu(root, client, output)
+            channel = client.invoke_shell()
 
-        root.mainloop()
+            # Lancer un thread pour lire le flux SSH en continu
+            thread = threading.Thread(target=read_ssh_channel, args=(channel, menu_callback))
+            thread.daemon = True  # Permettre la fermeture propre du programme
+            thread.start()
+
+            root.mainloop()
 
 if __name__ == "__main__":
     main()
