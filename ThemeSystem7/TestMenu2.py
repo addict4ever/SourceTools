@@ -55,13 +55,13 @@ def parse_menu_output(output):
     menu_options = re.findall(menu_pattern, output, re.MULTILINE)
     return {int(num): text for num, text in menu_options}
 
-# Fonction pour détecter et ignorer les messages d'accueil avant le menu
+# Fonction pour détecter le début du menu après le message d'accueil
 def detect_menu_start(output):
-    # Supposons que le menu commence après "Have a lot of fun..." ou un message similaire
-    start_pattern = r"Have a lot of fun.*\n"
+    # Supposons que le menu commence après un en-tête spécifique comme "MEGABURO INC."
+    start_pattern = r"MEGABURO INC\..*MENU PRINCIPAL"
     match = re.search(start_pattern, output, re.IGNORECASE)
     if match:
-        # Tout ce qui vient après le message d'accueil est considéré comme le menu
+        # Tout ce qui vient après ce point est considéré comme le menu
         menu_output = output[match.end():]
         return menu_output
     return output
