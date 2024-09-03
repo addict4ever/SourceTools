@@ -47,11 +47,18 @@ def read_ssh_channel(channel, callback):
         else:
             continue
 
+# Fonction pour nettoyer les séquences d'échappement ANSI et autres caractères de contrôle
+def clean_output(output):
+    ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
+    clean_text = ansi_escape.sub('', output)
+    return clean_text.strip()
+
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
+    clean_text = clean_output(output)
     # Rechercher les options de menu sous la forme de numéros suivis de texte
     menu_pattern = r"^\s*(\d+)\.\s+(.*)$"
-    menu_options = re.findall(menu_pattern, output, re.MULTILINE)
+    menu_options = re.findall(menu_pattern, clean_text, re.MULTILINE)
     return {int(num): text for num, text in menu_options}
 
 # Fonction pour détecter le début du menu après le message d'accueil
