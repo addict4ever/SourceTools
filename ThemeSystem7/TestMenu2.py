@@ -1,6 +1,7 @@
 import paramiko
 import tkinter as tk
 from tkinter import messagebox
+import re
 import json
 import logging
 
@@ -8,7 +9,7 @@ import logging
 logging.basicConfig(filename='lolssh.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Chargement des credentials depuis le fichier JSON
+# Charger les credentials depuis un fichier JSON
 def load_credentials():
     try:
         with open('credentials.json', 'r') as file:
@@ -19,7 +20,7 @@ def load_credentials():
         messagebox.showerror("Erreur", f"Erreur lors du chargement des credentials : {str(e)}")
         return None
 
-# Connexion SSH avec confirmation de succès ou d'échec
+# Connexion SSH
 def ssh_connect(credentials):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -32,63 +33,57 @@ def ssh_connect(credentials):
         messagebox.showerror("Erreur", f"Connexion SSH échouée : {str(e)}")
         return None
 
-# Exécution d'une commande SSH avec logging
+# Exécuter une commande SSH et capturer la sortie
 def execute_command(client, command):
-    logging.info(f"Commande exécutée : {command}")
     stdin, stdout, stderr = client.exec_command(command)
-    output = stdout.read().decode('utf-8').splitlines()
-    logging.info(f"Résultat : {''.join(output)}")
+    output = stdout.read().decode('utf-8')
+    logging.info(f"Commande exécutée : {command}\nRésultat : {output}")
     return output
 
-# Affichage du menu principal avec options dynamiques
-def display_menu(root, client, command, is_main_menu=False):
+# Fonction pour analyser les menus envoyés par le terminal serveur
+def parse_menu_output(output):
+    menu_pattern = r"^\d+\.\s+(.*)$"
+    menu_options = re.findall(menu_pattern, output, re.MULTILINE)
+    return menu_options
+
+# Générer les boutons de menu dynamiquement
+def display_menu(root, client, output):
     for widget in root.winfo_children():
-        widget.destroy()  # On supprime les widgets existants pour un nouvel affichage
+        widget.destroy()
 
-    # Affichage du nom "Megaburo" et du bouton "Menu Principal"
-    tk.Label(root, text="Megaburo", font=("Arial", 20)).pack()
+    tk.Label(root, text="Megaburo Inc.", font=("Arial", 20)).pack()
+    tk.Label(root, text="Menu Principal", font=("Arial", 16)).pack()
 
-    if not is_main_menu:
-        tk.Button(root, text="Menu Principal", command=lambda: display_menu(root, client, 'ls -1', True)).pack()
-
-    # Récupération et affichage dynamique des options de menu
-    data = execute_command(client, command)
-
-    for item in data:
-        button = tk.Button(root, text=item, command=lambda i=item: display_submenu(root, client, i))
+    menu_options = parse_menu_output(output)
+    
+    for i, option in enumerate(menu_options):
+        button = tk.Button(root, text=option, command=lambda idx=i: select_menu_option(root, client, idx + 1))
         button.pack()
 
-    # Option pour entrer une commande manuellement
-    tk.Label(root, text="Entrer une commande SSH :").pack()
-    user_command = tk.Entry(root)
-    user_command.pack()
+    tk.Button(root, text="Quitter", command=root.quit).pack()
 
-    tk.Button(root, text="Exécuter", command=lambda: display_submenu(root, client, user_command.get(), custom_command=True)).pack()
-
-# Gestion des sous-menus et des commandes personnalisées
-def display_submenu(root, client, choice, custom_command=False):
-    # Commande à exécuter selon le choix
-    new_command = choice if custom_command else f'ls -1 {choice}'  
-    display_menu(root, client, new_command)
+# Sélectionner une option de menu
+def select_menu_option(root, client, option_number):
+    command = str(option_number) + '\n'  # Envoyer le numéro de l'option sélectionnée
+    output = execute_command(client, command)
+    display_menu(root, client, output)
 
 # Fenêtre principale de l'application
 def main():
     credentials = load_credentials()
 
     if credentials:
-        # Initialisation de l'interface Tkinter
         root = tk.Tk()
         root.title("SSH Menu Dynamique")
 
-        # Connexion SSH
         client = ssh_connect(credentials)
 
         if client:
-            # Affichage du menu principal
-            display_menu(root, client, 'ls -1', True)
+            # Attendre l'affichage initial du menu
+            output = execute_command(client, '\n')  # Appuyer sur "Entrée" pour démarrer le menu
+            display_menu(root, client, output)
 
         root.mainloop()
 
-# Exécution de l'application
 if __name__ == "__main__":
     main()
