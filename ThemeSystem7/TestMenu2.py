@@ -6,9 +6,16 @@ import json
 import threading
 import logging
 
-# Configuration du logging dans un fichier
+# Configuration du logging dans des fichiers
 logging.basicConfig(filename='lolssh.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+menu_logger = logging.getLogger('menu_logger')
+menu_handler = logging.FileHandler('logmenu.log')
+menu_formatter = logging.Formatter('%(asctime)s - %(message)s')
+menu_handler.setFormatter(menu_formatter)
+menu_logger.addHandler(menu_handler)
+menu_logger.setLevel(logging.INFO)
 
 # Charger les credentials depuis un fichier JSON
 def load_credentials():
@@ -59,6 +66,13 @@ def parse_menu_output(output):
     # Rechercher les options de menu sous la forme de numéros suivis de texte, même s'ils sont sur plusieurs lignes
     menu_pattern = r"^\s*(\d+)\.\s+([^\n]+(?:\n\s{2,}[^\n]+)*)"
     menu_options = re.findall(menu_pattern, clean_text, re.MULTILINE)
+    
+    # Log menu options
+    if menu_options:
+        menu_logger.info("Menu détecté:")
+        for num, text in menu_options:
+            menu_logger.info(f"Option {num}: {text.strip()}")
+    
     return {int(num): re.sub(r'\s+', ' ', text.strip()) for num, text in menu_options}
 
 # Fonction pour détecter le début du menu après le message d'accueil
