@@ -108,6 +108,9 @@ def menu_callback(output):
     menu_output = detect_menu_start(output)
     if menu_output:
         display_menu(root, menu_output)
+    else:
+        # Mise à jour pour gérer les nouvelles options de menu
+        display_menu(root, output)
 
 # Fenêtre principale de l'application
 def main():
