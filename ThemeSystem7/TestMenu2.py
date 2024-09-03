@@ -56,10 +56,10 @@ def clean_output(output):
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
     clean_text = clean_output(output)
-    # Rechercher les options de menu sous la forme de numéros suivis de texte
-    menu_pattern = r"^\s*(\d+)\.\s+([^\n\r]+)"
+    # Rechercher les options de menu sous la forme de numéros suivis de texte, même s'ils sont sur plusieurs lignes
+    menu_pattern = r"^\s*(\d+)\.\s+([^\n]+(?:\n\s{2,}[^\n]+)*)"
     menu_options = re.findall(menu_pattern, clean_text, re.MULTILINE)
-    return {int(num): text.strip() for num, text in menu_options}
+    return {int(num): re.sub(r'\s+', ' ', text.strip()) for num, text in menu_options}
 
 # Fonction pour détecter le début du menu après le message d'accueil
 def detect_menu_start(output):
