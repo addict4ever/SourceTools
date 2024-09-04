@@ -10,6 +10,15 @@ import logging
 logging.basicConfig(filename='lolssh.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Logger pour enregistrer tout le flux SSH brut
+ssh_raw_logger = logging.getLogger('ssh_raw_logger')
+ssh_raw_handler = logging.FileHandler('ssh_raw.log')
+ssh_raw_formatter = logging.Formatter('%(asctime)s - %(message)s')
+ssh_raw_handler.setFormatter(ssh_raw_formatter)
+ssh_raw_logger.addHandler(ssh_raw_handler)
+ssh_raw_logger.setLevel(logging.INFO)
+
+# Logger pour les options du menu
 menu_logger = logging.getLogger('menu_logger')
 menu_handler = logging.FileHandler('logmenu.log')
 menu_formatter = logging.Formatter('%(asctime)s - %(message)s')
@@ -41,13 +50,16 @@ def ssh_connect(credentials):
         messagebox.showerror("Erreur", f"Connexion SSH échouée : {str(e)}")
         return None
 
-# Lire le flux SSH de manière continue
+# Lire le flux SSH de manière continue sans filtre (tout le texte brut est loggé dans ssh_raw.log)
 def read_ssh_channel(channel, callback):
     output = ""
     while True:
         if channel.recv_ready():
             received_data = channel.recv(1024).decode('utf-8')
-            logging.info(f"Reçu du serveur : {received_data}")
+            
+            # Enregistrer tout le flux brut dans ssh_raw.log
+            ssh_raw_logger.info(f"Reçu du serveur brut : {received_data}")
+            
             output += received_data
             callback(output)
             output = ""  # Réinitialiser la sortie après chaque traitement
@@ -56,13 +68,13 @@ def read_ssh_channel(channel, callback):
 
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
-    # Rechercher les options de menu sous la forme de numéros suivis de texte, y compris les options mal formatées
+    # Utilisation du regex pour capturer correctement les options de menu
     menu_pattern = r"^\s*(\d+)\.\s+([^\n]+)"
     
-    # Extraire toutes les lignes possibles correspondant aux options
+    # Extraire toutes les lignes correspondant aux options
     menu_options = re.findall(menu_pattern, output, re.MULTILINE)
     
-    # Log menu options
+    # Log uniquement les options de menu détectées
     if menu_options:
         menu_logger.info("Menu détecté:")
         for num, text in menu_options:
