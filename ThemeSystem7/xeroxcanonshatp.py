@@ -64,6 +64,7 @@ class ConvertisseurCSV(QWidget):
         # Ouvrir la boîte de dialogue pour choisir le fichier CSV
         fichier_entrée, _ = QFileDialog.getOpenFileName(self, "Sélectionner un fichier CSV", "", "Fichiers CSV (*.csv)")
         if fichier_entrée:
+            self.chemin_fichier_entrée = fichier_entrée
             self.label.setText(f"Fichier chargé : {fichier_entrée}")
             self.format_source, self.langue_source = self.detecter_format_et_langue(fichier_entrée)
 
@@ -86,34 +87,15 @@ class ConvertisseurCSV(QWidget):
                 else:
                     QMessageBox.warning(self, "Annulé", "Opération annulée. Veuillez sélectionner un autre fichier.")
 
-    def detecter_format_et_langue(self, fichier_csv):
-        # Lire les en-têtes du fichier CSV pour détecter le format et la langue
-        with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
-            lecteur_csv = csv.reader(fichier)
-            en_tetes = next(lecteur_csv)  # Lire la première ligne pour obtenir les en-têtes
-
-            # Détection des colonnes selon le format et la langue
-            if 'Display Name' in en_tetes or 'Nom' in en_tetes:
-                langue = 'Anglais' if 'Display Name' in en_tetes else 'Français'
-                format_source = "Xerox"
-            elif 'Nom' in en_tetes and 'Email' in en_tetes:
-                langue = 'Anglais' if 'Nom' == 'Name' else 'Français'
-                format_source = "Canon"
-            elif 'Numéro de téléphone' in en_tetes or 'Phone Number' in en_tetes:
-                langue = 'Français' if 'Numéro de téléphone' in en_tetes else 'Anglais'
-                format_source = "Sharp"
-            else:
-                format_source = None
-                langue = None
-
-            return format_source, langue
-
     def sauvegarder_fichier(self):
         # Ouvrir la boîte de dialogue pour choisir où sauvegarder le fichier converti
         fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
         if fichier_sortie:
             self.chemin_fichier_sortie = fichier_sortie
             self.convertir_fichier()
+        else:
+            # Si l'utilisateur n'a pas sélectionné de fichier, afficher un avertissement
+            QMessageBox.warning(self, "Avertissement", "Aucun fichier de sortie sélectionné.")
 
     def convertir_fichier(self):
         try:
