@@ -172,10 +172,10 @@ class ConvertisseurCSV(QWidget):
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
                     'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
                     'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
-                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
-                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
-                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
-                    'desktop-password/@encodingMethod']
+                    'smb-directory','smb-username', 'smb-username/@encodingMethod', 'smb-password', 
+                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 
+                    'desktop-directory', 'desktop-username', 'desktop-username/@encodingMethod', 
+                    'desktop-password', 'desktop-password/@encodingMethod']
 
     def convertir_ligne(self, ligne, format_source, format_sortie):
         # Adapter les noms de colonnes selon le format source et cible
