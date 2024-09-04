@@ -56,8 +56,10 @@ def read_ssh_channel(channel, callback):
 
 # Fonction pour analyser les menus envoyés par le terminal serveur
 def parse_menu_output(output):
-    # Rechercher les options de menu sous la forme de numéros suivis de texte, même s'ils sont sur plusieurs lignes
-    menu_pattern = r"^\s*(\d+)\.\s+([^\n]+(?:\n\s{2,}[^\n]+)*)"
+    # Rechercher les options de menu sous la forme de numéros suivis de texte, y compris les options mal formatées
+    menu_pattern = r"^\s*(\d+)\.\s+([^\n]+)"
+    
+    # Extraire toutes les lignes possibles correspondant aux options
     menu_options = re.findall(menu_pattern, output, re.MULTILINE)
     
     # Log menu options
@@ -66,7 +68,7 @@ def parse_menu_output(output):
         for num, text in menu_options:
             menu_logger.info(f"Option {num}: {text.strip()}")
     
-    return {int(num): re.sub(r'\s+', ' ', text.strip()) for num, text in menu_options}
+    return {int(num): text.strip() for num, text in menu_options}
 
 # Fonction pour détecter le début du menu après le message d'accueil
 def detect_menu_start(output):
