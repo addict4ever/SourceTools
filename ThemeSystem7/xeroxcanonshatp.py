@@ -91,17 +91,17 @@ class ConvertisseurCSV(QWidget):
         # Lire les en-têtes du fichier CSV pour détecter le format et la langue
         with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
             lecteur_csv = csv.reader(fichier)
-            en_tetes = next(lecteur_csv)  # Lire la première ligne pour obtenir les en-têtes
+            en_tetes = [col.lower() for col in next(lecteur_csv)]  # Lire la première ligne et convertir en minuscules
 
             # Détection des colonnes selon le format et la langue
-            if 'Display Name' in en_tetes or 'Nom' in en_tetes:
-                langue = 'Anglais' if 'Display Name' in en_tetes else 'Français'
+            if 'display name' in en_tetes or 'nom' in en_tetes:
+                langue = 'Anglais' if 'display name' in en_tetes else 'Français'
                 format_source = "Xerox"
-            elif 'Nom' in en_tetes and 'Email' in en_tetes:
-                langue = 'Anglais' if 'Nom' == 'Name' else 'Français'
+            elif 'nom' in en_tetes and 'email' in en_tetes:
+                langue = 'Anglais' if 'nom' == 'name' else 'Français'
                 format_source = "Canon"
             elif 'name' in en_tetes or 'mail-address' in en_tetes:
-                langue = 'Français' if 'Nom' in en_tetes else 'Anglais'
+                langue = 'Français' if 'nom' in en_tetes else 'Anglais'
                 format_source = "Sharp"
             else:
                 format_source = None
@@ -135,7 +135,7 @@ class ConvertisseurCSV(QWidget):
                 colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')  # Sortie en anglais par défaut
 
                 # Vérifier si les colonnes du fichier source sont correctes
-                if not all(col in lecteur_csv.fieldnames for col in colonnes_source):
+                if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
                     raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
 
                 # Écrire le fichier CSV converti
@@ -172,19 +172,19 @@ class ConvertisseurCSV(QWidget):
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
                     'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
                     'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
-                    'smb-directory','smb-username', 'smb-username/@encodingMethod', 'smb-password', 
-                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 
-                    'desktop-directory', 'desktop-username', 'desktop-username/@encodingMethod', 
-                    'desktop-password', 'desktop-password/@encodingMethod']
+                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
+                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
+                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
+                    'desktop-password/@encodingMethod']
 
     def convertir_ligne(self, ligne, format_source, format_sortie):
         # Adapter les noms de colonnes selon le format source et cible
         correspondance = {
-            'Nom': ['Nom', 'Display Name', 'Name'],
-            'Email': ['Email', 'Email Address', 'mail-address', 'Adresse e-mail'],
-            'Téléphone': ['Phone Number', 'Numéro de téléphone'],
-            'Adresse': ['Adresse', 'Address', 'smb-directory'],
-            'Entreprise': ['Entreprise', 'Company'],
+            'Nom': ['nom', 'display name', 'name'],
+            'Email': ['email', 'email address', 'mail-address', 'adresse e-mail'],
+            'Téléphone': ['phone number', 'numéro de téléphone'],
+            'Adresse': ['adresse', 'address', 'smb-directory'],
+            'Entreprise': ['entreprise', 'company'],
             'FTP Username': ['ftp-username', 'ftp-username/@encodingMethod'],
             'FTP Password': ['ftp-password', 'ftp-password/@encodingMethod'],
             'SMB Username': ['smb-username', 'smb-username/@encodingMethod'],
@@ -193,8 +193,8 @@ class ConvertisseurCSV(QWidget):
 
         ligne_convertie = {}
         for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):  # Sortie en anglais par défaut
-            for colonne_source in correspondance.get(colonne_sortie, []):
-                if colonne_source in ligne:
+            for colonne_source in correspondance.get(colonne_sortie.lower(), []):  # Gérer la casse ici aussi
+                if colonne_source.lower() in [key.lower() for key in ligne.keys()]:
                     ligne_convertie[colonne_sortie] = ligne[colonne_source]
                     break
             else:
