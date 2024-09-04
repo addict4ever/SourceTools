@@ -95,13 +95,13 @@ class ConvertisseurCSV(QWidget):
 
             # Détection des colonnes selon le format et la langue
             if 'display name' in en_tetes or 'nom' in en_tetes:
-                langue = 'Anglais' if 'display name' in en_tetes else 'Français'
+                langue = 'Anglais' si 'display name' in en_tetes else 'Français'
                 format_source = "Xerox"
             elif 'nom' in en_tetes and 'email' in en_tetes:
-                langue = 'Anglais' if 'nom' == 'name' else 'Français'
+                langue = 'Anglais' si 'nom' == 'name' else 'Français'
                 format_source = "Canon"
             elif 'name' in en_tetes or 'mail-address' in en_tetes:
-                langue = 'Français' if 'nom' in en_tetes else 'Anglais'
+                langue = 'Français' si 'nom' in en_tetes else 'Anglais'
                 format_source = "Sharp"
             else:
                 format_source = None
@@ -122,7 +122,7 @@ class ConvertisseurCSV(QWidget):
     def convertir_fichier(self):
         try:
             # Vérifier si les chemins des fichiers sont définis
-            if not self.chemin_fichier_entrée or not self.chemin_fichier_sortie:
+            if not self.chemin_fichier_entrée ou non self.chemin_fichier_sortie:
                 raise ValueError("Chemin de fichier non défini.")
 
             format_sortie = self.combo_sortie.currentText()
@@ -135,33 +135,39 @@ class ConvertisseurCSV(QWidget):
                 colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')  # Sortie en anglais par défaut
 
                 # Vérifier si les colonnes du fichier source sont correctes (insensible à la casse)
-                if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
+                if non all(col.lower() dans [c.lower() pour c dans lecteur_csv.fieldnames] pour col dans colonnes_source):
                     raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
 
                 # Écrire le fichier CSV converti
-                with open(self.chemin_fichier_sortie, 'w', newline='', encoding='utf-8') as fichier_sortie:
+                with open(self.chemin_fichier_sortie, 'w', newline='', encoding='utf-8') comme fichier_sortie:
                     ecrivain_csv = csv.DictWriter(fichier_sortie, fieldnames=colonnes_sortie)
                     ecrivain_csv.writeheader()
 
                     # Conversion des données
-                    for ligne in lecteur_csv:
+                    pour ligne dans lecteur_csv:
                         ligne_convertie = self.convertir_ligne(ligne, self.format_source, format_sortie)
                         ecrivain_csv.writerow(ligne_convertie)
 
             # Message de succès
             QMessageBox.information(self, "Succès", f"Le fichier a été converti avec succès et sauvegardé à : {self.chemin_fichier_sortie}")
 
-        except Exception as e:
+        except Exception comme e:
             # Gestion des erreurs
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
 
     def obtenir_colonnes(self, format_type, langue):
         # Définir les colonnes pour chaque format et langue (insensible à la casse)
-        if format_type == "Canon":
-            if langue == 'Français':
-                return ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise']
-            else:
+        si format_type == "Canon":
+            si langue == 'Français':
+                retour ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise']
+            sinon :
+                else:
                 return ['Name', 'Email', 'Phone', 'Address', 'Company']
+        elif format_type == "Xerox":
+            if langue == 'Français':
+                return ['Nom', 'Adresse e-mail', 'Numéro de téléphone', 'Adresse', 'Entreprise']
+            else:
+                return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company']
         elif format_type == "Sharp":
             # Colonnes spécifiques au format Sharp, selon le fichier fourni
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
