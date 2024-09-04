@@ -88,10 +88,10 @@ class ConvertisseurCSV(QWidget):
                     QMessageBox.warning(self, "Annulé", "Opération annulée. Veuillez sélectionner un autre fichier.")
 
     def detecter_format_et_langue(self, fichier_csv):
-        # Lire les en-têtes du fichier CSV pour détecter le format et la langue
+        # Lire les en-têtes du fichier CSV pour détecter le format et la langue (insensible à la casse)
         with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
             lecteur_csv = csv.reader(fichier)
-            en_tetes = [col.lower() for col in next(lecteur_csv)]  # Lire la première ligne et convertir en minuscules
+            en_tetes = [col.lower() for col in next(lecteur_csv)]  # Convertir toutes les colonnes en minuscules
 
             # Détection des colonnes selon le format et la langue
             if 'display name' in en_tetes or 'nom' in en_tetes:
@@ -134,7 +134,7 @@ class ConvertisseurCSV(QWidget):
                 colonnes_source = self.obtenir_colonnes(self.format_source, self.langue_source)
                 colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')  # Sortie en anglais par défaut
 
-                # Vérifier si les colonnes du fichier source sont correctes
+                # Vérifier si les colonnes du fichier source sont correctes (insensible à la casse)
                 if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
                     raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
 
@@ -156,17 +156,12 @@ class ConvertisseurCSV(QWidget):
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
 
     def obtenir_colonnes(self, format_type, langue):
-        # Définir les colonnes pour chaque format et langue
+        # Définir les colonnes pour chaque format et langue (insensible à la casse)
         if format_type == "Canon":
             if langue == 'Français':
                 return ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise']
             else:
                 return ['Name', 'Email', 'Phone', 'Address', 'Company']
-        elif format_type == "Xerox":
-            if langue == 'Français':
-                return ['Nom', 'Adresse e-mail', 'Numéro de téléphone', 'Adresse', 'Entreprise']
-            else:
-                return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company']
         elif format_type == "Sharp":
             # Colonnes spécifiques au format Sharp, selon le fichier fourni
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
