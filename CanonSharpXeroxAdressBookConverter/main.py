@@ -159,14 +159,14 @@ class ConvertisseurCSV(QWidget):
         # Définir les colonnes pour chaque format et langue
         if format_type == "Canon":
             if langue == 'Français':
-                return ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise']
+                return ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise', 'Fax', 'Catégorie', 'Localisation', 'Notes', 'Titre', 'Département']
             else:
-                return ['Name', 'Email', 'Phone', 'Address', 'Company']
+                return ['Name', 'Email', 'Phone', 'Address', 'Company', 'Fax', 'Category', 'Location', 'Notes', 'Job Title', 'Department']
         elif format_type == "Xerox":
             if langue == 'Français':
-                return ['Nom', 'Adresse e-mail', 'Numéro de téléphone', 'Adresse', 'Entreprise']
+                return ['Nom', 'Adresse e-mail', 'Numéro de téléphone', 'Adresse', 'Entreprise', 'Numéro de fax', 'Département', 'Titre', 'Notes', 'Localisation']
             else:
-                return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company']
+                return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company', 'Fax Number', 'Department', 'Title', 'Notes', 'Location']
         elif format_type == "Sharp":
             # Colonnes spécifiques au format Sharp, selon le fichier fourni
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
@@ -177,27 +177,35 @@ class ConvertisseurCSV(QWidget):
                     'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
                     'desktop-password/@encodingMethod']
 
+
     def convertir_ligne(self, ligne, format_source, format_sortie):
-        # Adapter les noms de colonnes selon le format source et cible
-        correspondance = {
-            'Name': ['name'],
-            'Email': ['mail-address'],
-            'Phone': [],  # Aucun champ Phone dans Sharp, on retourne une valeur vide
-            'Address': [],  # Aucun champ Address dans Sharp, on retourne une valeur vide
-            'Company': []  # Aucun champ Company dans Sharp, on retourne une valeur vide
-        }
+    # Adapter les noms de colonnes selon le format source et cible
+    correspondance = {
+        'Name': ['display name', 'nom', 'name'],  # Nom dans Xerox et Canon
+        'Email': ['email address', 'mail-address'],  # E-mail dans Xerox et Canon
+        'Phone': ['phone number'],  # Téléphone dans Xerox
+        'Address': ['address'],  # Adresse dans Xerox
+        'Company': ['company'],  # Entreprise dans Xerox
+        'Fax': ['fax number', 'ifax-address'],  # Numéro de fax
+        'Category': ['category-id'],  # Catégorie (existe dans certains systèmes)
+        'Location': ['location'],  # Localisation (présent dans certains systèmes)
+        'Notes': ['notes'],  # Notes supplémentaires
+        'Job Title': ['title'],  # Titre professionnel
+        'Department': ['department']  # Département
+    }
 
-        ligne_convertie = {}
-        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):  # Sortie en anglais par défaut
-            for colonne_source in correspondance.get(colonne_sortie, []):  # Gérer la casse ici aussi
-                if colonne_source in ligne:
-                    ligne_convertie[colonne_sortie] = ligne[colonne_source]
-                    break
-            else:
-                # Si aucune correspondance trouvée, remplir avec une valeur vide pour Phone, Address, et Company
-                ligne_convertie[colonne_sortie] = ''
+    ligne_convertie = {}
+    for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):  # Sortie en anglais par défaut
+        for colonne_source in correspondance.get(colonne_sortie.lower(), []):  # Gérer la casse ici aussi
+            if colonne_source in ligne:
+                ligne_convertie[colonne_sortie] = ligne[colonne_source]
+                break
+        else:
+            # Si aucune correspondance trouvée, remplir avec une valeur vide
+            ligne_convertie[colonne_sortie] = ''
 
-        return ligne_convertie
+    return ligne_convertie
+
 
 # Initialisation de l'application
 def main():
