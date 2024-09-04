@@ -31,6 +31,13 @@ class ConvertisseurCSV(QWidget):
         self.label_langue_source = QLabel("Langue détectée : Inconnue", self)
         layout.addWidget(self.label_langue_source)
 
+        # ComboBox pour choisir manuellement le format source si nécessaire
+        self.label_format_source_manuel = QLabel("Choisissez le format source (si nécessaire) :", self)
+        layout.addWidget(self.label_format_source_manuel)
+        self.combo_source = QComboBox(self)
+        self.combo_source.addItems(["Canon", "Xerox", "Sharp"])
+        layout.addWidget(self.combo_source)
+
         # ComboBox pour choisir le format de sortie
         self.label_format_sortie = QLabel("Choisissez le format de sortie :", self)
         layout.addWidget(self.label_format_sortie)
@@ -57,7 +64,6 @@ class ConvertisseurCSV(QWidget):
         # Ouvrir la boîte de dialogue pour choisir le fichier CSV
         fichier_entrée, _ = QFileDialog.getOpenFileName(self, "Sélectionner un fichier CSV", "", "Fichiers CSV (*.csv)")
         if fichier_entrée:
-            self.chemin_fichier_entrée = fichier_entrée
             self.label.setText(f"Fichier chargé : {fichier_entrée}")
             self.format_source, self.langue_source = self.detecter_format_et_langue(fichier_entrée)
 
@@ -66,7 +72,19 @@ class ConvertisseurCSV(QWidget):
                 self.label_langue_source.setText(f"Langue détectée : {self.langue_source}")
                 self.btn_convertir.setEnabled(True)
             else:
-                QMessageBox.critical(self, "Erreur", "Le format du fichier n'a pas pu être détecté.")
+                # Demander à l'utilisateur de confirmer le format source si non détecté
+                reponse = QMessageBox.question(self, "Format non détecté",
+                                               "Le format du fichier n'a pas pu être détecté automatiquement. Voulez-vous confirmer manuellement le format?",
+                                               QMessageBox.Yes | QMessageBox.No)
+                if reponse == QMessageBox.Yes:
+                    # Utiliser le format sélectionné dans la combo_box comme format source
+                    self.format_source = self.combo_source.currentText()
+                    self.langue_source = "Manuel"
+                    self.label_format_source.setText(f"Format source sélectionné : {self.format_source}")
+                    self.label_langue_source.setText(f"Langue : Inconnue (Manuel)")
+                    self.btn_convertir.setEnabled(True)
+                else:
+                    QMessageBox.warning(self, "Annulé", "Opération annulée. Veuillez sélectionner un autre fichier.")
 
     def detecter_format_et_langue(self, fichier_csv):
         # Lire les en-têtes du fichier CSV pour détecter le format et la langue
@@ -105,7 +123,7 @@ class ConvertisseurCSV(QWidget):
 
             format_sortie = self.combo_sortie.currentText()
 
-            # Lire le fichier CSV selon le format source détecté
+            # Lire le fichier CSV selon le format source détecté ou confirmé manuellement
             with open(self.chemin_fichier_entrée, 'r', newline='', encoding='utf-8') as fichier_entrée:
                 lecteur_csv = csv.DictReader(fichier_entrée)
 
