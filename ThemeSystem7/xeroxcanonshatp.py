@@ -100,8 +100,8 @@ class ConvertisseurCSV(QWidget):
             elif 'Nom' in en_tetes and 'Email' in en_tetes:
                 langue = 'Anglais' if 'Nom' == 'Name' else 'Français'
                 format_source = "Canon"
-            elif 'Numéro de téléphone' in en_tetes or 'Phone Number' in en_tetes:
-                langue = 'Français' si 'Numéro de téléphone' in en_tetes else 'Anglais'
+            elif 'name' in en_tetes or 'mail-address' in en_tetes:
+                langue = 'Français' if 'Nom' in en_tetes else 'Anglais'
                 format_source = "Sharp"
             else:
                 format_source = None
@@ -168,19 +168,27 @@ class ConvertisseurCSV(QWidget):
             else:
                 return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company']
         elif format_type == "Sharp":
-            if langue == 'Français':
-                return ['Nom', 'Email', 'Numéro de téléphone', 'Adresse', 'Entreprise']
-            else:
-                return ['Name', 'Email', 'Phone Number', 'Address', 'Company']
+            # Colonnes spécifiques au format Sharp, selon le fichier fourni
+            return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
+                    'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
+                    'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
+                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
+                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
+                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
+                    'desktop-password/@encodingMethod']
 
     def convertir_ligne(self, ligne, format_source, format_sortie):
         # Adapter les noms de colonnes selon le format source et cible
         correspondance = {
             'Nom': ['Nom', 'Display Name', 'Name'],
-            'Email': ['Email', 'Email Address', 'Adresse e-mail'],
+            'Email': ['Email', 'Email Address', 'mail-address', 'Adresse e-mail'],
             'Téléphone': ['Phone Number', 'Numéro de téléphone'],
-            'Adresse': ['Adresse', 'Address'],
-            'Entreprise': ['Entreprise', 'Company']
+            'Adresse': ['Adresse', 'Address', 'smb-directory'],
+            'Entreprise': ['Entreprise', 'Company'],
+            'FTP Username': ['ftp-username', 'ftp-username/@encodingMethod'],
+            'FTP Password': ['ftp-password', 'ftp-password/@encodingMethod'],
+            'SMB Username': ['smb-username', 'smb-username/@encodingMethod'],
+            'SMB Password': ['smb-password', 'smb-password/@encodingMethod']
         }
 
         ligne_convertie = {}
