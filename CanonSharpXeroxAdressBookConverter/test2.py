@@ -275,22 +275,22 @@ class ConvertisseurCSV(QWidget):
     def convertir_ligne(self, ligne, format_source, format_sortie):
         # Adapter les noms de colonnes selon le format source et cible
         correspondance = {
-            'Name': ['display name', 'nom', 'name'],  # Nom dans Xerox et Canon
-            'Email': ['email address', 'mail-address'],  # E-mail dans Xerox et Canon
-            'Phone': ['phone number'],  # Téléphone dans Xerox
-            'Address': ['address'],  # Adresse dans Xerox
-            'Company': ['company'],  # Entreprise dans Xerox
-            'Fax': ['fax number', 'ifax-address'],  # Numéro de fax
-            'Category': ['category-id'],  # Catégorie (existe dans certains systèmes)
-            'Location': ['location'],  # Localisation (présent dans certains systèmes)
-            'Notes': ['notes'],  # Notes supplémentaires
-            'Job Title': ['title'],  # Titre professionnel
-            'Department': ['department']  # Département
+            'Name': ['name'],  # Nom dans Sharp
+            'Email': ['mail-address'],  # E-mail dans Sharp
+            'Phone': [],  # Pas de correspondance directe dans Sharp
+            'Address': ['address'],  # Adresse dans Sharp
+            'Company': [],  # Pas de correspondance directe dans Sharp
+            'Fax': ['fax-number'],  # Fax dans Sharp
+            'Category': ['category-id'],  # Catégorie dans Sharp
+            'Location': [],  # Pas de correspondance directe dans Sharp
+            'Notes': [],  # Pas de correspondance directe dans Sharp
+            'Job Title': [],  # Pas de correspondance directe dans Sharp
+            'Department': []  # Pas de correspondance directe dans Sharp
         }
 
         ligne_convertie = {}
         for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):  # Sortie en anglais par défaut
-            for colonne_source in correspondance.get(colonne_sortie.lower(), []):  # Gérer la casse ici aussi
+            for colonne_source in correspondance.get(colonne_sortie, []):  # Gérer la casse ici aussi
                 if colonne_source in ligne:
                     ligne_convertie[colonne_sortie] = ligne[colonne_source]
                     break
@@ -299,6 +299,7 @@ class ConvertisseurCSV(QWidget):
                 ligne_convertie[colonne_sortie] = ''
 
         return ligne_convertie
+
 
     def sauvegarder_modifications(self):
         # Ouvrir la boîte de dialogue pour choisir où sauvegarder le fichier modifié
@@ -341,6 +342,17 @@ class ConvertisseurCSV(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de l'exportation en JSON : {str(e)}")
 
+    def rechercher_donnees(self):
+        texte_recherche = self.search_bar.text().lower()
+        for row in range(self.table_widget.rowCount()):
+            hide_row = True
+            for col in range(1, self.table_widget.columnCount()):
+                item = self.table_widget.item(row, col)
+                if item and texte_recherche in item.text().lower():
+                    hide_row = False
+                    break
+            self.table_widget.setRowHidden(row, hide_row)
+
 # Initialisation de l'application
 def main():
     app = QApplication(sys.argv)
@@ -350,4 +362,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
