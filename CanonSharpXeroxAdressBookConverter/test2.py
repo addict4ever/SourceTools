@@ -253,10 +253,15 @@ class ConvertisseurCSV(QWidget):
     def obtenir_colonnes(self, format_type, langue):
         # Définir les colonnes pour chaque format et langue
         if format_type == "Canon":
-            if langue == 'Français':
-                return ['Nom', 'Email', 'Téléphone', 'Adresse', 'Entreprise', 'Fax', 'Catégorie', 'Localisation', 'Notes', 'Titre', 'Département']
-            else:
-                return ['Name', 'Email', 'Phone', 'Address', 'Company', 'Fax', 'Category', 'Location', 'Notes', 'Job Title', 'Department']
+            return [
+                'objectclass', 'cn', 'cnread', 'cnshort', 'subdbid', 'mailaddress', 'dialdata', 'uri', 'url', 'path',
+                'protocol', 'username', 'pwd', 'member', 'indxid', 'enablepartial', 'sub', 'faxprotocol', 'ecm',
+                'txstartspeed', 'commode', 'lineselect', 'uricommode', 'uriflag', 'pwdinputflag', 'ifaxmode',
+                'transsvcstr1', 'transsvcstr2', 'ifaxdirectmode', 'documenttype', 'bwpapersize', 'bwcompressiontype',
+                'bwpixeltype', 'bwbitsperpixel', 'bwresolution', 'clpapersize', 'clcompressiontype', 'clpixeltype',
+                'clbitsperpixel', 'clresolution', 'accesscode', 'uuid', 'cnreadlang', 'enablesfp', 'memberobjectuuid',
+                'loginusername', 'logindomainname', 'usergroupname', 'personalid', 'folderidflag'
+            ]
         elif format_type == "Xerox":
             if langue == 'Français':
                 return ['Nom', 'Adresse e-mail', 'Numéro de téléphone', 'Adresse', 'Entreprise', 'Numéro de fax', 'Département', 'Titre', 'Notes', 'Localisation']
@@ -275,22 +280,61 @@ class ConvertisseurCSV(QWidget):
     def convertir_ligne(self, ligne, format_source, format_sortie):
         # Adapter les noms de colonnes selon le format source et cible
         correspondance = {
-            'Name': ['name'],  # Nom dans Sharp
-            'Email': ['mail-address'],  # E-mail dans Sharp
-            'Phone': [],  # Pas de correspondance directe dans Sharp
-            'Address': ['address'],  # Adresse dans Sharp
-            'Company': [],  # Pas de correspondance directe dans Sharp
-            'Fax': ['fax-number'],  # Fax dans Sharp
-            'Category': ['category-id'],  # Catégorie dans Sharp
-            'Location': [],  # Pas de correspondance directe dans Sharp
-            'Notes': [],  # Pas de correspondance directe dans Sharp
-            'Job Title': [],  # Pas de correspondance directe dans Sharp
-            'Department': []  # Pas de correspondance directe dans Sharp
+            'objectclass': ['objectclass'],
+            'cn': ['name', 'display name', 'nom'],
+            'cnread': ['cnread'],  
+            'cnshort': ['cnshort'], 
+            'subdbid': ['subdbid'],  
+            'mailaddress': ['email', 'mail-address'],  
+            'dialdata': ['phone number'],  
+            'uri': ['uri'],
+            'url': ['url'],  
+            'path': ['path'],  
+            'protocol': ['protocol'],
+            'username': ['ftp-username', 'smb-username', 'desktop-username'],  
+            'pwd': ['ftp-password', 'smb-password', 'desktop-password'],  
+            'member': ['member'],
+            'indxid': ['indxid'],  
+            'enablepartial': ['enablepartial'],
+            'sub': ['sub'],
+            'faxprotocol': ['faxprotocol'],  
+            'ecm': ['ecm'],  
+            'txstartspeed': ['txstartspeed'],
+            'commode': ['commode'],  
+            'lineselect': ['lineselect'],
+            'uricommode': ['uricommode'],  
+            'uriflag': ['uriflag'],  
+            'pwdinputflag': ['pwdinputflag'],  
+            'ifaxmode': ['ifaxmode'],  
+            'transsvcstr1': ['transsvcstr1'],  
+            'transsvcstr2': ['transsvcstr2'],  
+            'ifaxdirectmode': ['ifaxdirectmode'],  
+            'documenttype': ['documenttype'],  
+            'bwpapersize': ['bwpapersize'],  
+            'bwcompressiontype': ['bwcompressiontype'],  
+            'bwpixeltype': ['bwpixeltype'],  
+            'bwbitsperpixel': ['bwbitsperpixel'],  
+            'bwresolution': ['bwresolution'],  
+            'clpapersize': ['clpapersize'],  
+            'clcompressiontype': ['clcompressiontype'],  
+            'clpixeltype': ['clpixeltype'],  
+            'clbitsperpixel': ['clbitsperpixel'],  
+            'clresolution': ['clresolution'],  
+            'accesscode': ['accesscode'],  
+            'uuid': ['uuid'],  
+            'cnreadlang': ['cnreadlang'],  
+            'enablesfp': ['enablesfp'],  
+            'memberobjectuuid': ['memberobjectuuid'],  
+            'loginusername': ['loginusername'],  
+            'logindomainname': ['logindomainname'],  
+            'usergroupname': ['usergroupname'],  
+            'personalid': ['personalid'],  
+            'folderidflag': ['folderidflag']
         }
 
         ligne_convertie = {}
-        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):  # Sortie en anglais par défaut
-            for colonne_source in correspondance.get(colonne_sortie, []):  # Gérer la casse ici aussi
+        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
+            for colonne_source in correspondance.get(colonne_sortie.lower(), []):  
                 if colonne_source in ligne:
                     ligne_convertie[colonne_sortie] = ligne[colonne_source]
                     break
@@ -299,6 +343,7 @@ class ConvertisseurCSV(QWidget):
                 ligne_convertie[colonne_sortie] = ''
 
         return ligne_convertie
+
 
 
     def sauvegarder_modifications(self):
