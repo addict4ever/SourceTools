@@ -1,6 +1,10 @@
+import sys
 import csv
+import json
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QComboBox, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox, QLineEdit
 from PyQt5.QtCore import Qt
+from fpdf import FPDF
+from datetime import datetime
 
 class ConvertisseurCSV(QWidget):
     def __init__(self):
@@ -49,13 +53,38 @@ class ConvertisseurCSV(QWidget):
         self.table_widget = QTableWidget(self)
         layout.addWidget(self.table_widget)
 
+        # Barre de recherche
+        self.search_bar = QLineEdit(self)
+        self.search_bar.setPlaceholderText("Rechercher dans les données...")
+        self.search_bar.textChanged.connect(self.rechercher_donnees)
+        layout.addWidget(self.search_bar)
+
+        # Bouton pour ajouter une ligne ou une colonne
+        self.btn_ajouter_ligne = QPushButton("Ajouter une ligne", self)
+        self.btn_ajouter_ligne.clicked.connect(self.ajouter_ligne)
+        layout.addWidget(self.btn_ajouter_ligne)
+
+        self.btn_ajouter_colonne = QPushButton("Ajouter une colonne", self)
+        self.btn_ajouter_colonne.clicked.connect(self.ajouter_colonne)
+        layout.addWidget(self.btn_ajouter_colonne)
+
+        # Bouton pour supprimer les enregistrements sélectionnés
+        self.btn_supprimer_ligne = QPushButton("Supprimer les enregistrements sélectionnés", self)
+        self.btn_supprimer_ligne.clicked.connect(self.supprimer_lignes)
+        layout.addWidget(self.btn_supprimer_ligne)
+
         # Bouton pour convertir et sauvegarder
         self.btn_convertir = QPushButton("Convertir et sauvegarder", self)
         self.btn_convertir.clicked.connect(self.sauvegarder_fichier)
         self.btn_convertir.setEnabled(False)
         layout.addWidget(self.btn_convertir)
 
-        # Définir le layout pour la fenêtre
+        # Bouton pour prévisualiser la sortie
+        self.btn_previsualisation = QPushButton("Prévisualisation du fichier", self)
+        self.btn_previsualisation.clicked.connect(self.preview_output)
+        self.btn_previsualisation.setEnabled(False)
+        layout.addWidget(self.btn_previsualisation)
+
         self.setLayout(layout)
 
         # Variables de fichier
@@ -66,7 +95,6 @@ class ConvertisseurCSV(QWidget):
         self.donnees_csv = []
 
     def charger_fichier(self):
-        # Ouvrir la boîte de dialogue pour choisir le fichier CSV
         fichier_entrée, _ = QFileDialog.getOpenFileName(self, "Sélectionner un fichier CSV", "", "Fichiers CSV (*.csv)")
         if fichier_entrée:
             self.chemin_fichier_entrée = fichier_entrée
@@ -76,32 +104,26 @@ class ConvertisseurCSV(QWidget):
             if self.format_source:
                 self.label_format_source.setText(f"Format source détecté : {self.format_source}")
                 self.label_langue_source.setText(f"Langue détectée : {self.langue_source}")
-                self.combo_source.setCurrentText(self.format_source)  # Mise à jour de la ComboBox
+                self.combo_source.setCurrentText(self.format_source)
                 self.btn_convertir.setEnabled(True)
+                self.btn_previsualisation.setEnabled(True)
             else:
-                # Demander à l'utilisateur de confirmer le format source si non détecté
-                reponse = QMessageBox.question(self, "Format non détecté",
-                                               "Le format du fichier n'a pas pu être détecté automatiquement. Voulez-vous confirmer manuellement le format?",
-                                               QMessageBox.Yes | QMessageBox.No)
+                reponse = QMessageBox.question(self, "Format non détecté", "Le format du fichier n'a pas pu être détecté automatiquement. Voulez-vous confirmer manuellement le format?", QMessageBox.Yes | QMessageBox.No)
                 if reponse == QMessageBox.Yes:
-                    # Utiliser le format sélectionné dans la combo_box comme format source
                     self.format_source = self.combo_source.currentText()
                     self.langue_source = "Manuel"
                     self.label_format_source.setText(f"Format source sélectionné : {self.format_source}")
                     self.label_langue_source.setText(f"Langue : Inconnue (Manuel)")
                     self.btn_convertir.setEnabled(True)
+                    self.btn_previsualisation.setEnabled(True)
                 else:
                     QMessageBox.warning(self, "Annulé", "Opération annulée. Veuillez sélectionner un autre fichier.")
-            
             self.charger_donnees_csv(fichier_entrée)
 
     def detecter_format_et_langue(self, fichier_csv):
-        # Lire les en-têtes du fichier CSV pour détecter le format et la langue (insensible à la casse)
         with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
             lecteur_csv = csv.reader(fichier)
-            en_tetes = [col.lower() for col in next(lecteur_csv)]  # Convertir toutes les colonnes en minuscules
-
-            # Détection des colonnes selon le format et la langue
+            en_tetes = [col.lower() for col in next(lecteur_csv)]
             if 'display name' in en_tetes or 'nom' in en_tetes:
                 langue = 'Anglais' if 'display name' in en_tetes else 'Français'
                 format_source = "Xerox"
@@ -109,79 +131,70 @@ class ConvertisseurCSV(QWidget):
                 langue = 'Anglais' if 'nom' == 'name' else 'Français'
                 format_source = "Canon"
             elif 'name' in en_tetes or 'mail-address' in en_tetes:
-                langue = 'Français' si 'nom' en en_tetes sinon 'Anglais'
+                langue = 'Français' if 'nom' in en_tetes else 'Anglais'
                 format_source = "Sharp"
             else:
                 format_source = None
                 langue = None
-
             return format_source, langue
 
     def charger_donnees_csv(self, fichier_csv):
-        # Charger les données du fichier CSV dans le tableau
         with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
             lecteur_csv = csv.reader(fichier)
             self.donnees_csv = list(lecteur_csv)
 
-        # Configuration du tableau
+        # Charger les données dans le tableau
         if self.donnees_csv:
             en_tetes = self.donnees_csv[0]
             self.table_widget.setColumnCount(len(en_tetes) + 1)  # Une colonne supplémentaire pour les checkbox
             self.table_widget.setRowCount(len(self.donnees_csv) - 1)
             self.table_widget.setHorizontalHeaderLabels(["Sélectionner"] + en_tetes)
-            # Remplir le tableau avec les données et ajouter des checkbox pour chaque ligne
             for i, ligne in enumerate(self.donnees_csv[1:]):
-                # Ajouter la checkbox de sélection
                 checkbox = QCheckBox()
                 self.table_widget.setCellWidget(i, 0, checkbox)
-                
-                # Ajouter les valeurs des colonnes
                 for j, valeur in enumerate(ligne):
                     item = QTableWidgetItem(valeur)
-                    self.table_widget.setItem(i, j + 1, item)  # Décalage d'une colonne pour laisser la place au checkbox
-
-            # Activer le bouton de sauvegarde
+                    self.table_widget.setItem(i, j + 1, item)
             self.btn_sauvegarder.setEnabled(True)
             self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
+    def sauvegarder_fichier(self):
+        fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
+        if fichier_sortie:
+            self.chemin_fichier_sortie = fichier_sortie
+            self.convertir_fichier()
+        else:
+            QMessageBox.warning(self, "Avertissement", "Aucun fichier de sortie sélectionné.")
+
     def convertir_fichier(self):
         try:
-            # Vérifier si les chemins des fichiers sont définis
             if not self.chemin_fichier_entrée or not self.chemin_fichier_sortie:
                 raise ValueError("Chemin de fichier non défini.")
-
             format_sortie = self.combo_sortie.currentText()
 
-            # Lire le fichier CSV selon le format source détecté ou confirmé manuellement
             with open(self.chemin_fichier_entrée, 'r', newline='', encoding='utf-8') as fichier_entrée:
                 lecteur_csv = csv.DictReader(fichier_entrée)
-
                 colonnes_source = self.obtenir_colonnes(self.format_source, self.langue_source)
-                colonnes_sortie = self.obtenir_colonnes(format_sortie)  # Sortie en anglais par défaut
+                colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
 
-                # Vérifier si les colonnes du fichier source sont correctes (insensible à la casse)
                 if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
                     raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
 
-                # Écrire le fichier CSV converti avec guillemets
+                # Sauvegarder avec toutes les colonnes entourées de guillemets
                 with open(self.chemin_fichier_sortie, 'w', newline='', encoding='utf-8') as fichier_sortie:
                     ecrivain_csv = csv.DictWriter(fichier_sortie, fieldnames=colonnes_sortie, quoting=csv.QUOTE_ALL)
                     ecrivain_csv.writeheader()
 
-                    # Conversion des données
                     for ligne in lecteur_csv:
                         ligne_convertie = self.convertir_ligne(ligne, self.format_source, format_sortie)
                         ecrivain_csv.writerow(ligne_convertie)
 
-            # Message de succès
-            QMessageBox.information(self, "Succès", f"Le fichier a été converti avecsuccès et sauvegardé à : {self.chemin_fichier_sortie}")
+            QMessageBox.information(self, "Succès", f"Le fichier a été converti avec succès et sauvegardé à : {self.chemin_fichier_sortie}")
 
         except Exception as e:
-            # Gestion des erreurs
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
 
-    def obtenir_colonnes(self, format_type):
-        # Définir les colonnes pour chaque format et langue
+    def obtenir_colonnes(self, format_type, langue):
         if format_type == "Canon":
             return [
                 'objectclass', 'cn', 'cnread', 'cnshort', 'subdbid', 'mailaddress', 'dialdata', 'uri', 'url', 'path',
@@ -197,47 +210,41 @@ class ConvertisseurCSV(QWidget):
         elif format_type == "Sharp":
             return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
                     'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
-                    'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod',
-                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password',
-                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory',
-                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password',
+                    'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
+                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
+                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
+                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
                     'desktop-password/@encodingMethod']
 
     def convertir_ligne(self, ligne, format_source, format_sortie):
-        # Adapter les noms de colonnes selon le format source et cible
         correspondance = {
             'objectclass': ['objectclass'],
             'cn': ['name', 'display name', 'nom'],
-            'mailaddress': ['email address', 'mail-address'],
+            'mailaddress': ['email', 'mail-address'],
             'dialdata': ['phone number'],
-            # Ajout d'autres correspondances selon les colonnes
+            'username': ['ftp-username', 'smb-username', 'desktop-username'],
+            'pwd': ['ftp-password', 'smb-password', 'desktop-password']
         }
-
         ligne_convertie = {}
-        for colonne_sortie in self.obtenir_colonnes(format_sortie):
+        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
             for colonne_source in correspondance.get(colonne_sortie.lower(), []):
                 if colonne_source in ligne:
                     ligne_convertie[colonne_sortie] = ligne[colonne_source]
                     break
             else:
-                # Si aucune correspondance trouvée, remplir avec une valeur vide
                 ligne_convertie[colonne_sortie] = ''
-
         return ligne_convertie
 
-    def sauvegarder_fichier(self):
-        # Ouvrir la boîte de dialogue pour choisir où sauvegarder le fichier converti
-        fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
-        if fichier_sortie:
-            self.chemin_fichier_sortie = fichier_sortie
-            self.convertir_fichier()
-
-# Initialisation de l'application
-def main():
-    app = QApplication(sys.argv)
-    fenetre = ConvertisseurCSV()
-    fenetre.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
+    def preview_output(self):
+        # Afficher un aperçu du fichier de sortie
+        try:
+            format_sortie = self.combo_sortie.currentText()
+            colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
+            preview_text = "Aperçu du fichier de sortie:\n"
+            preview_text += ", ".join(colonnes_sortie) + "\n"
+            for row in self.donnees_csv[1:6]:  # Prévisualisation des 5 premières lignes
+                row_convertie = self.convertir_ligne(row, self.format_source, format_sortie)
+                preview_text += ", ".join(row_convertie.values()) + "\n"
+            QMessageBox.information(self, "Aperçu", preview_text)
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Impossible d'afficher l'aperçu : {str(e)}")
