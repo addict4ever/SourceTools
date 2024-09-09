@@ -282,3 +282,36 @@ def convertir_fichier(self):
 
     except Exception as e:
         QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
+
+
+
+
+def convertir_ligne(self, ligne, format_source, format_sortie):
+    correspondance = {
+        'objectclass': ['objectclass'],
+        'cn': ['name', 'display name', 'nom'],
+        'mailaddress': ['email', 'mail-address'],
+        'dialdata': ['phone number'],
+        'username': ['ftp-username', 'smb-username', 'desktop-username'],
+        'pwd': ['ftp-password', 'smb-password', 'desktop-password']
+    }
+    
+    # Initialiser la ligne convertie avec "email" au début
+    ligne_convertie = {"email": ligne.get('mailaddress', '')}
+    
+    # Ajouter le numéro (ici, je vais ajouter un numéro d'ordre par exemple)
+    ligne_convertie["number"] = 1  # Vous pouvez implémenter un compteur ou autre logique ici
+
+    # Ajouter les colonnes selon le format source
+    for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
+        # Ignorer certaines colonnes inutiles ou vides, par exemple celles qui contiennent "xS4FiNvCE4i8EqfPNhjWg=="
+        if ligne.get(colonne_sortie) == "+xS4FiNvCE4i8EqfPNhjWg==" or not ligne.get(colonne_sortie):
+            continue
+        for colonne_source in correspondance.get(colonne_sortie.lower(), []):
+            if colonne_source in ligne:
+                ligne_convertie[colonne_sortie] = ligne[colonne_source]
+                break
+        else:
+            ligne_convertie[colonne_sortie] = ''  # Mettre une valeur vide si aucune correspondance trouvée
+
+    return ligne_convertie
