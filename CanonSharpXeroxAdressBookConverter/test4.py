@@ -315,3 +315,78 @@ def convertir_ligne(self, ligne, format_source, format_sortie):
             ligne_convertie[colonne_sortie] = ''  # Mettre une valeur vide si aucune correspondance trouvée
 
     return ligne_convertie
+
+def convertir_fichier(self):
+    try:
+        if not self.chemin_fichier_entrée or not self.chemin_fichier_sortie:
+            raise ValueError("Chemin de fichier non défini.")
+        format_sortie = self.combo_sortie.currentText()
+
+        with open(self.chemin_fichier_entrée, 'r', newline='', encoding='utf-8') as fichier_entrée:
+            lecteur_csv = csv.DictReader(fichier_entrée)
+            colonnes_source = self.obtenir_colonnes(self.format_source, self.langue_source)
+            colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
+
+            # Ajout manuel des nouveaux champs dans les colonnes de sortie
+            colonnes_sortie.insert(0, 'number')  # Ajouter 'number' au début
+            colonnes_sortie.insert(1, 'email')  # Ajouter 'email' en deuxième position
+
+            if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
+                raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
+
+            with open(self.chemin_fichier_sortie, 'w', newline='', encoding='utf-8') as fichier_sortie:
+                ecrivain_csv = csv.DictWriter(fichier_sortie, fieldnames=colonnes_sortie, quoting=csv.QUOTE_MINIMAL)
+                ecrivain_csv.writeheader()
+
+                # Générer un numéro pour chaque ligne
+                numero = 1
+
+                # Écrire chaque ligne avec les données
+                for ligne in lecteur_csv:
+                    ligne_convertie = self.convertir_ligne(ligne, self.format_source, format_sortie)
+
+                    # Si la colonne "number" n'existe pas ou est vide, ajouter un numéro
+                    if not ligne_convertie.get('number'):
+                        ligne_convertie['number'] = numero
+                        numero += 1  # Incrémenter le numéro pour la prochaine ligne
+
+                    # Ajouter un email si manquant
+                    if not ligne_convertie.get('email'):
+                        ligne_convertie['email'] = 'dummy@example.com'
+
+                    ecrivain_csv.writerow(ligne_convertie)
+
+        QMessageBox.information(self, "Succès", f"Le fichier a été converti avec succès et sauvegardé à : {self.chemin_fichier_sortie}")
+
+    except Exception as e:
+        QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
+
+
+def convertir_ligne(self, ligne, format_source, format_sortie):
+    correspondance = {
+        'objectclass': ['objectclass'],
+        'cn': ['name', 'display name', 'nom'],
+        'mailaddress': ['email', 'mail-address'],
+        'dialdata': ['phone number'],
+        'username': ['ftp-username', 'smb-username', 'desktop-username'],
+        'pwd': ['ftp-password', 'smb-password', 'desktop-password']
+    }
+
+    # Initialiser la ligne convertie avec un email et un numéro
+    ligne_convertie = {
+        'number': ligne.get('number', ''),  # Si le numéro existe déjà, le récupérer sinon vide
+        'email': ligne.get('mailaddress', '')  # Récupérer l'email sinon vide
+    }
+
+    # Ajouter les colonnes selon le format source
+    for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
+        if ligne.get(colonne_sortie) == "+xS4FiNvCE4i8EqfPNhjWg==" or not ligne.get(colonne_sortie):
+            continue  # Ignorer les valeurs inutiles ou vides
+        for colonne_source in correspondance.get(colonne_sortie.lower(), []):
+            if colonne_source in ligne:
+                ligne_convertie[colonne_sortie] = ligne[colonne_source]
+                break
+        else:
+            ligne_convertie[colonne_sortie] = ''  # Ajouter une valeur vide si aucune correspondance trouvée
+
+    return ligne_convertie
