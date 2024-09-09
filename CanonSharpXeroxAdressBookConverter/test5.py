@@ -14,7 +14,6 @@ class ConvertisseurCSV(QWidget):
     def initUI(self):
         self.setWindowTitle("Convertisseur CSV Canon, Xerox et Sharp (FR/EN)")
         self.setGeometry(100, 100, 800, 500)
-
         layout = QVBoxLayout()
 
         self.label = QLabel("Sélectionnez un fichier CSV à convertir ou éditer :", self)
@@ -76,10 +75,31 @@ class ConvertisseurCSV(QWidget):
         self.btn_exporter_pdf.clicked.connect(self.exporter_pdf)
         layout.addWidget(self.btn_exporter_pdf)
 
+        self.btn_importer_multiples = QPushButton("Importer plusieurs fichiers CSV", self)
+        self.btn_importer_multiples.clicked.connect(self.importer_fichiers_multiples)
+        layout.addWidget(self.btn_importer_multiples)
+
+        self.btn_sauvegarde_auto = QPushButton("Sauvegarde automatique avec versionnage", self)
+        self.btn_sauvegarde_auto.clicked.connect(self.sauvegarde_automatique)
+        layout.addWidget(self.btn_sauvegarde_auto)
+
+        self.btn_nettoyer_donnees = QPushButton("Nettoyer les données", self)
+        self.btn_nettoyer_donnees.clicked.connect(self.nettoyer_donnees)
+        layout.addWidget(self.btn_nettoyer_donnees)
+
+        self.btn_exporter_json = QPushButton("Exporter en JSON", self)
+        self.btn_exporter_json.clicked.connect(self.exporter_json)
+        layout.addWidget(self.btn_exporter_json)
+
         self.btn_sauvegarder = QPushButton("Sauvegarder les modifications", self)
         self.btn_sauvegarder.clicked.connect(self.sauvegarder_modifications)
         self.btn_sauvegarder.setEnabled(False)
         layout.addWidget(self.btn_sauvegarder)
+
+        self.historique_modifications = []
+        self.btn_annuler = QPushButton("Annuler dernière modification", self)
+        self.btn_annuler.clicked.connect(self.annuler_modification)
+        layout.addWidget(self.btn_annuler)
 
         self.setLayout(layout)
 
@@ -140,7 +160,7 @@ class ConvertisseurCSV(QWidget):
 
         if self.donnees_csv:
             en_tetes = self.donnees_csv[0]
-            self.table_widget.setColumnCount(len(en_tetes) + 1)  # Une colonne supplémentaire pour les checkbox
+            self.table_widget.setColumnCount(len(en_tetes) + 1)
             self.table_widget.setRowCount(len(self.donnees_csv) - 1)
             self.table_widget.setHorizontalHeaderLabels(["Sélectionner"] + en_tetes)
             for i, ligne in enumerate(self.donnees_csv[1:]):
@@ -152,48 +172,25 @@ class ConvertisseurCSV(QWidget):
             self.btn_sauvegarder.setEnabled(True)
             self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-    def obtenir_colonnes(self, format_type, langue):
-        if format_type == "Canon":
-            return [
-                'objectclass', 'cn', 'cnread', 'cnshort', 'subdbid', 'mailaddress', 'dialdata', 'uri', 'url', 'path',
-                'protocol', 'username', 'pwd', 'member', 'indxid', 'enablepartial', 'sub', 'faxprotocol', 'ecm',
-                'txstartspeed', 'commode', 'lineselect', 'uricommode', 'uriflag', 'pwdinputflag', 'ifaxmode',
-                'transsvcstr1', 'transsvcstr2', 'ifaxdirectmode', 'documenttype', 'bwpapersize', 'bwcompressiontype',
-                'bwpixeltype', 'bwbitsperpixel', 'bwresolution', 'clpapersize', 'clcompressiontype', 'clpixeltype',
-                'clbitsperpixel', 'clresolution', 'accesscode', 'uuid', 'cnreadlang', 'enablesfp', 'memberobjectuuid',
-                'loginusername', 'logindomainname', 'usergroupname', 'personalid', 'folderidflag'
-            ]
-        elif format_type == "Xerox":
-            return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company', 'Fax Number', 'Department', 'Title', 'Notes', 'Location']
-        elif format_type == "Sharp":
-            return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
-                    'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
-                    'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
-                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
-                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
-                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
-                    'desktop-password/@encodingMethod']
+    def ajouter_ligne(self):
+        row_count = self.table_widget.rowCount()
+        self.table_widget.insertRow(row_count)
+        checkbox = QCheckBox()
+        self.table_widget.setCellWidget(row_count, 0, checkbox)
 
-    def convertir_ligne(self, ligne, format_source, format_sortie):
-        correspondance = {
-            'objectclass': ['objectclass'],
-            'cn': ['name', 'display name', 'nom'],
-            'mailaddress': ['email', 'mail-address'],
-            'dialdata': ['phone number'],
-            'username': ['ftp-username', 'smb-username', 'desktop-username'],
-            'pwd': ['ftp-password', 'smb-password', 'desktop-password']
-            # Ajoutez d'autres correspondances ici si nécessaire
-        }
+    def ajouter_colonne(self):
+        col_count = self.table_widget.columnCount()
+        self.table_widget.insertColumn(col_count)
+        self.table_widget.setHorizontalHeaderItem(col_count, QTableWidgetItem(f"Colonne {col_count}"))
 
-        ligne_convertie = {}
-        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
-            for colonne_source in correspondance.get(colonne_sortie.lower(), []):
-                if colonne_source in ligne:
-                    ligne_convertie[colonne_sortie] = ligne[colonne_source]
-                    break
-            else:
-                ligne_convertie[colonne_sortie] = '""'  # Ajouter des guillemets
-        return ligne_convertie
+    def supprimer_lignes(self):
+        rows_to_delete = []
+        for i in range(self.table_widget.rowCount()):
+            checkbox = self.table_widget.cellWidget(i, 0)
+            if checkbox.isChecked():
+                rows_to_delete.append(i)
+        for row in sorted(rows_to_delete, reverse=True):
+            self.table_widget.removeRow(row)
 
     def sauvegarder_fichier(self):
         fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
@@ -236,12 +233,53 @@ class ConvertisseurCSV(QWidget):
             colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
             preview_text = "Aperçu du fichier de sortie:\n"
             preview_text += ", ".join(colonnes_sortie) + "\n"
-            for row in self.donnees_csv[1:6]:  # Prévisualisation des 5 premières lignes
+            for row in self.donnees_csv[1:6]:
                 row_convertie = self.convertir_ligne(row, self.format_source, format_sortie)
                 preview_text += ", ".join(row_convertie.values()) + "\n"
             QMessageBox.information(self, "Aperçu", preview_text)
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Impossible d'afficher l'aperçu : {str(e)}")
+
+    def obtenir_colonnes(self, format_type, langue):
+        if format_type == "Canon":
+            return [
+                'objectclass', 'cn', 'cnread', 'cnshort', 'subdbid', 'mailaddress', 'dialdata', 'uri', 'url', 'path',
+                'protocol', 'username', 'pwd', 'member', 'indxid', 'enablepartial', 'sub', 'faxprotocol', 'ecm',
+                'txstartspeed', 'commode', 'lineselect', 'uricommode', 'uriflag', 'pwdinputflag', 'ifaxmode',
+                'transsvcstr1', 'transsvcstr2', 'ifaxdirectmode', 'documenttype', 'bwpapersize', 'bwcompressiontype',
+                'bwpixeltype', 'bwbitsperpixel', 'bwresolution', 'clpapersize', 'clcompressiontype', 'clpixeltype',
+                'clbitsperpixel', 'clresolution', 'accesscode', 'uuid', 'cnreadlang', 'enablesfp', 'memberobjectuuid',
+                'loginusername', 'logindomainname', 'usergroupname', 'personalid', 'folderidflag'
+            ]
+        elif format_type == "Xerox":
+            return ['Display Name', 'Email Address', 'Phone Number', 'Address', 'Company', 'Fax Number', 'Department', 'Title', 'Notes', 'Location']
+        elif format_type == "Sharp":
+            return ['address', 'search-id', 'name', 'search-string', 'category-id', 'frequently-used',
+                    'mail-address', 'fax-number', 'ifax-address', 'ftp-host', 'ftp-directory', 'ftp-username',
+                    'ftp-username/@encodingMethod', 'ftp-password', 'ftp-password/@encodingMethod', 
+                    'smb-directory', 'smb-username', 'smb-username/@encodingMethod', 'smb-password', 
+                    'smb-password/@encodingMethod', 'desktop-host', 'desktop-port', 'desktop-directory', 
+                    'desktop-username', 'desktop-username/@encodingMethod', 'desktop-password', 
+                    'desktop-password/@encodingMethod']
+
+    def convertir_ligne(self, ligne, format_source, format_sortie):
+        correspondance = {
+            'objectclass': ['objectclass'],
+            'cn': ['name', 'display name', 'nom'],
+            'mailaddress': ['email', 'mail-address'],
+            'dialdata': ['phone number'],
+            'username': ['ftp-username', 'smb-username', 'desktop-username'],
+            'pwd': ['ftp-password', 'smb-password', 'desktop-password']
+        }
+        ligne_convertie = {}
+        for colonne_sortie in self.obtenir_colonnes(format_sortie, 'Anglais'):
+            for colonne_source in correspondance.get(colonne_sortie.lower(), []):
+                if colonne_source in ligne:
+                    ligne_convertie[colonne_sortie] = ligne[colonne_source]
+                    break
+            else:
+                ligne_convertie[colonne_sortie] = '""'
+        return ligne_convertie
 
     def exporter_pdf(self):
         fichier_pdf, _ = QFileDialog.getSaveFileName(self, "Exporter en PDF", "", "Fichiers PDF (*.pdf)")
@@ -250,22 +288,46 @@ class ConvertisseurCSV(QWidget):
             pdf.add_page()
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt="Aperçu du fichier de sortie", ln=True, align="C")
-            for row in self.donnees_csv[:6]:  # Exemple : prévisualisation des premières lignes
+            for row in self.donnees_csv[:6]:
                 row_convertie = self.convertir_ligne(row, self.format_source, self.combo_sortie.currentText())
                 pdf.cell(200, 10, txt=", ".join(row_convertie.values()), ln=True)
             pdf.output(fichier_pdf)
             QMessageBox.information(self, "PDF Exporté", f"Le fichier PDF a été exporté avec succès à : {fichier_pdf}")
 
+    def importer_fichiers_multiples(self):
+        fichiers, _ = QFileDialog.getOpenFileNames(self, "Sélectionner plusieurs fichiers CSV", "", "Fichiers CSV (*.csv)")
+        if fichiers:
+            self.donnees_csv = []
+            for fichier in fichiers:
+                with open(fichier, 'r', newline='', encoding='utf-8') as f:
+                    lecteur_csv = csv.reader(f)
+                    self.donnees_csv.extend(list(lecteur_csv))
+            QMessageBox.information(self, "Importé", "Les fichiers ont été importés avec succès")
+
+    def sauvegarde_automatique(self):
+        version = datetime.now().strftime("%Y%m%d%H%M%S")
+        fichier_sortie = f"backup_version_{version}.csv"
+        self.chemin_fichier_sortie = fichier_sortie
+        self.convertir_fichier()
+
+    def nettoyer_donnees(self):
+        for row in range(self.table_widget.rowCount()):
+            for col in range(1, self.table_widget.columnCount()):
+                item = self.table_widget.item(row, col)
+                if item and item.text():
+                    cleaned_text = item.text().strip()
+                    self.table_widget.setItem(row, col, QTableWidgetItem(cleaned_text))
+        QMessageBox.information(self, "Nettoyage des données", "Les données ont été nettoyées avec succès.")
+
     def sauvegarder_modifications(self):
         fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
         if fichier_sortie:
             try:
+                self.historique_modifications.append(self.donnees_csv.copy())
                 with open(fichier_sortie, 'w', newline='', encoding='utf-8') as fichier:
                     ecrivain_csv = csv.writer(fichier)
-
                     en_tetes = [self.table_widget.horizontalHeaderItem(col).text() for col in range(1, self.table_widget.columnCount())]
                     ecrivain_csv.writerow(en_tetes)
-
                     for row in range(self.table_widget.rowCount()):
                         ligne = [self.table_widget.item(row, col).text() if self.table_widget.item(row, col) else '' for col in range(1, self.table_widget.columnCount())]
                         ecrivain_csv.writerow(ligne)
@@ -273,6 +335,45 @@ class ConvertisseurCSV(QWidget):
                 QMessageBox.information(self, "Succès", f"Les modifications ont été sauvegardées dans le fichier : {fichier_sortie}")
             except Exception as e:
                 QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la sauvegarde : {str(e)}")
+
+    def annuler_modification(self):
+        if self.historique_modifications:
+            self.donnees_csv = self.historique_modifications.pop()
+            self.charger_donnees_csv_from_list(self.donnees_csv)
+            QMessageBox.information(self, "Annulation", "La dernière modification a été annulée.")
+        else:
+            QMessageBox.warning(self, "Avertissement", "Aucune modification à annuler.")
+
+    def charger_donnees_csv_from_list(self, data_list):
+        if data_list:
+            en_tetes = data_list[0]
+            self.table_widget.setColumnCount(len(en_tetes) + 1)
+            self.table_widget.setRowCount(len(data_list) - 1)
+            self.table_widget.setHorizontalHeaderLabels(["Sélectionner"] + en_tetes)
+            for i, ligne in enumerate(data_list[1:]):
+                checkbox = QCheckBox()
+                self.table_widget.setCellWidget(i, 0, checkbox)
+                for j, valeur in enumerate(ligne):
+                    item = QTableWidgetItem(valeur)
+                    self.table_widget.setItem(i, j + 1, item)
+            self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+    def exporter_json(self):
+        fichier_json, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier JSON", "", "Fichiers JSON (*.json)")
+        if fichier_json:
+            try:
+                donnees_json = []
+                en_tetes = [self.table_widget.horizontalHeaderItem(col).text() for col in range(1, self.table_widget.columnCount())]
+                for row in range(self.table_widget.rowCount()):
+                    ligne = {en_tetes[col - 1]: self.table_widget.item(row, col).text() if self.table_widget.item(row, col) else '' for col in range(1, self.table_widget.columnCount())}
+                    donnees_json.append(ligne)
+
+                with open(fichier_json, 'w', encoding='utf-8') as fichier:
+                    json.dump(donnees_json, fichier, ensure_ascii=False, indent=4)
+
+                QMessageBox.information(self, "Succès", f"Les données ont été exportées en JSON avec succès.")
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de l'exportation en JSON : {str(e)}")
 
     def rechercher_donnees(self):
         texte_recherche = self.search_bar.text().lower()
@@ -285,12 +386,13 @@ class ConvertisseurCSV(QWidget):
                     break
             self.table_widget.setRowHidden(row, hide_row)
 
-# Initialisation de l'application
+
 def main():
     app = QApplication(sys.argv)
     fenetre = ConvertisseurCSV()
     fenetre.show()
     sys.exit(app.exec_())
+
 
 if __name__ == '__main__':
     main()
