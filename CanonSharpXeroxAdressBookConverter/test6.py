@@ -4,7 +4,7 @@ import json
 import uuid
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, 
                              QFileDialog, QComboBox, QMessageBox, QTableWidget, QTableWidgetItem, 
-                             QHeaderView, QCheckBox, QLineEdit, QTableWidgetItem)
+                             QHeaderView, QCheckBox, QLineEdit, QTableWidgetItem, QTableWidget)
 from PyQt5.QtCore import Qt
 from fpdf import FPDF
 from datetime import datetime
@@ -197,9 +197,7 @@ class ConvertisseurCSV(QWidget):
                     for ligne in lecteur_csv:
                         ligne_convertie = self.convertir_ligne(ligne, self.format_source, format_sortie)
 
-                        # Mettre les valeurs entre guillemets
                         ligne_convertie_avec_guillemets = {k: f'"{v}"' if v else '' for k, v in ligne_convertie.items()}
-
                         ecrivain_csv.writerow(ligne_convertie_avec_guillemets)
 
             QMessageBox.information(self, "Succès", f"Le fichier a été converti avec succès et sauvegardé à : {self.chemin_fichier_sortie}")
@@ -216,7 +214,7 @@ class ConvertisseurCSV(QWidget):
             self.table_widget_preview.setColumnCount(len(colonnes_sortie))
             self.table_widget_preview.setHorizontalHeaderLabels(colonnes_sortie)
 
-            for row_idx, row in enumerate(self.donnees_csv[1:6]):  # Prévisualisation des 5 premières lignes
+            for row_idx, row in enumerate(self.donnees_csv[1:6]):
                 self.table_widget_preview.insertRow(row_idx)
                 ligne_convertie = self.convertir_ligne(row, self.format_source, format_sortie)
                 for col_idx, col in enumerate(ligne_convertie.values()):
@@ -276,7 +274,7 @@ class ConvertisseurCSV(QWidget):
         if colonne == 'uuid':
             return str(uuid.uuid4())
         elif colonne == 'subdbid':
-            return '1'  # Par défaut, utiliser "1" pour `subdbid`
+            return '1'
         elif colonne == 'protocol':
             return 'smtp'
         return ''
