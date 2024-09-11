@@ -286,3 +286,50 @@ def convertir_fichier(self):
 
 if __name__ == '__main__':
     main()
+
+
+def convertir_fichier(self):
+    try:
+        if not self.chemin_fichier_entrée or not self.chemin_fichier_sortie:
+            raise ValueError("Chemin de fichier non défini.")
+
+        format_sortie = self.combo_sortie.currentText()
+
+        # Ouvrir le fichier d'entrée en lecture
+        with open(self.chemin_fichier_entrée, 'r', newline='', encoding='utf-8') as fichier_entrée:
+            lecteur_csv = csv.DictReader(fichier_entrée)
+
+            colonnes_source = self.obtenir_colonnes(self.format_source, self.langue_source)
+            colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
+
+            # Vérifier si toutes les colonnes requises sont présentes dans le fichier source
+            if not all(col.lower() in [c.lower() for c in lecteur_csv.fieldnames] for col in colonnes_source):
+                raise ValueError(f"Les colonnes du fichier {self.format_source} ne correspondent pas.")
+
+            # Ouvrir le fichier de sortie en écriture
+            with open(self.chemin_fichier_sortie, 'w', newline='', encoding='utf-8') as fichier_sortie:
+                # Ajouter les en-têtes spécifiques pour Canon au début du fichier
+                fichier_sortie.write("# Canon AddressBook CSV version: 0x0003\n")
+                fichier_sortie.write("# CharSet: UTF-8\n")
+                fichier_sortie.write("# SubAddressBookName:\n")
+                fichier_sortie.write("# DB Version: 0x010b\n")
+
+                # Initialiser le writer CSV
+                ecrivain_csv = csv.DictWriter(fichier_sortie, fieldnames=colonnes_sortie, quoting=csv.QUOTE_MINIMAL)
+
+                # Écrire les en-têtes du fichier CSV
+                ecrivain_csv.writeheader()
+
+                # Parcourir chaque ligne du fichier source et la convertir
+                for ligne in lecteur_csv:
+                    ligne_convertie = self.convertir_ligne(ligne, self.format_source, format_sortie)
+
+                    # Formatage de la ligne pour la sortie, sans guillemets superflus
+                    ecrivain_csv.writerow(ligne_convertie)
+
+        # Message de succès après conversion
+        QMessageBox.information(self, "Succès", f"Le fichier a été converti avec succès et sauvegardé à : {self.chemin_fichier_sortie}")
+
+    except Exception as e:
+        # Gestion des erreurs avec affichage d'un message
+        QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
