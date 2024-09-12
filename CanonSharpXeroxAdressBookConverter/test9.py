@@ -1,7 +1,8 @@
 import sys
 import csv
 import json
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QComboBox, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox, QLineEdit
+import uuid
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QPushButton, QFileDialog, QComboBox, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox, QLineEdit, QDialog, QInputDialog
 from PyQt5.QtCore import Qt
 from fpdf import FPDF
 from datetime import datetime
@@ -12,54 +13,43 @@ class ConvertisseurCSV(QWidget):
         self.initUI()
 
     def initUI(self):
-        # Configuration de la fenêtre principale
         self.setWindowTitle("Convertisseur CSV Canon, Xerox et Sharp (FR/EN)")
         self.setGeometry(100, 100, 800, 500)
-
-        # Disposition verticale
         layout = QVBoxLayout()
 
-        # Label d'instructions pour choisir un fichier CSV
         self.label = QLabel("Sélectionnez un fichier CSV à convertir ou éditer :", self)
         layout.addWidget(self.label)
 
-        # Bouton pour charger le fichier d'entrée
         self.btn_charger = QPushButton("Charger fichier CSV", self)
         self.btn_charger.clicked.connect(self.charger_fichier)
         layout.addWidget(self.btn_charger)
 
-        # Label pour montrer le format détecté et la langue détectée
         self.label_format_source = QLabel("Format source détecté : Aucun", self)
         layout.addWidget(self.label_format_source)
 
         self.label_langue_source = QLabel("Langue détectée : Inconnue", self)
         layout.addWidget(self.label_langue_source)
 
-        # ComboBox pour choisir manuellement le format source si nécessaire
         self.label_format_source_manuel = QLabel("Choisissez le format source (si nécessaire) :", self)
         layout.addWidget(self.label_format_source_manuel)
         self.combo_source = QComboBox(self)
         self.combo_source.addItems(["Canon", "Xerox", "Sharp"])
         layout.addWidget(self.combo_source)
 
-        # ComboBox pour choisir le format de sortie
         self.label_format_sortie = QLabel("Choisissez le format de sortie :", self)
         layout.addWidget(self.label_format_sortie)
         self.combo_sortie = QComboBox(self)
         self.combo_sortie.addItems(["Canon", "Xerox", "Sharp"])
         layout.addWidget(self.combo_sortie)
 
-        # Tableau pour éditer les données CSV
         self.table_widget = QTableWidget(self)
         layout.addWidget(self.table_widget)
 
-        # Barre de recherche
         self.search_bar = QLineEdit(self)
         self.search_bar.setPlaceholderText("Rechercher dans les données...")
         self.search_bar.textChanged.connect(self.rechercher_donnees)
         layout.addWidget(self.search_bar)
 
-        # Bouton pour ajouter une ligne ou une colonne
         self.btn_ajouter_ligne = QPushButton("Ajouter une ligne", self)
         self.btn_ajouter_ligne.clicked.connect(self.ajouter_ligne)
         layout.addWidget(self.btn_ajouter_ligne)
@@ -68,63 +58,46 @@ class ConvertisseurCSV(QWidget):
         self.btn_ajouter_colonne.clicked.connect(self.ajouter_colonne)
         layout.addWidget(self.btn_ajouter_colonne)
 
-        # Bouton pour supprimer les enregistrements sélectionnés
         self.btn_supprimer_ligne = QPushButton("Supprimer les enregistrements sélectionnés", self)
         self.btn_supprimer_ligne.clicked.connect(self.supprimer_lignes)
         layout.addWidget(self.btn_supprimer_ligne)
 
-        # Bouton pour convertir et sauvegarder
         self.btn_convertir = QPushButton("Convertir et sauvegarder", self)
         self.btn_convertir.clicked.connect(self.sauvegarder_fichier)
         self.btn_convertir.setEnabled(False)
         layout.addWidget(self.btn_convertir)
 
-        # Bouton pour prévisualiser la sortie
         self.btn_previsualisation = QPushButton("Prévisualisation du fichier", self)
         self.btn_previsualisation.clicked.connect(self.preview_output)
         self.btn_previsualisation.setEnabled(False)
         layout.addWidget(self.btn_previsualisation)
 
-        # Bouton pour exporter en PDF
         self.btn_exporter_pdf = QPushButton("Exporter en PDF", self)
         self.btn_exporter_pdf.clicked.connect(self.exporter_pdf)
         layout.addWidget(self.btn_exporter_pdf)
 
-        # Bouton pour importer plusieurs fichiers
         self.btn_importer_multiples = QPushButton("Importer plusieurs fichiers CSV", self)
         self.btn_importer_multiples.clicked.connect(self.importer_fichiers_multiples)
         layout.addWidget(self.btn_importer_multiples)
 
-        # Bouton pour sauvegarde automatique avec versionnage
         self.btn_sauvegarde_auto = QPushButton("Sauvegarde automatique avec versionnage", self)
         self.btn_sauvegarde_auto.clicked.connect(self.sauvegarde_automatique)
         layout.addWidget(self.btn_sauvegarde_auto)
 
-        # Bouton pour nettoyer les données
         self.btn_nettoyer_donnees = QPushButton("Nettoyer les données", self)
         self.btn_nettoyer_donnees.clicked.connect(self.nettoyer_donnees)
         layout.addWidget(self.btn_nettoyer_donnees)
 
-        # Bouton pour sauvegarder en JSON
         self.btn_exporter_json = QPushButton("Exporter en JSON", self)
         self.btn_exporter_json.clicked.connect(self.exporter_json)
         layout.addWidget(self.btn_exporter_json)
 
-        # **Bouton pour sauvegarder les modifications manuelles**
-        self.btn_sauvegarder = QPushButton("Sauvegarder les modifications", self)
-        self.btn_sauvegarder.clicked.connect(self.sauvegarder_modifications)
-        self.btn_sauvegarder.setEnabled(False)
-        layout.addWidget(self.btn_sauvegarder)
-
-        # Initialiser historique des modifications
-        self.historique_modifications = []
-        self.btn_annuler = QPushButton("Annuler dernière modification", self)
-        self.btn_annuler.clicked.connect(self.annuler_modification)
-        layout.addWidget(self.btn_annuler)
+        self.btn_modifier_colonnes = QPushButton("Modifier noms des colonnes", self)
+        self.btn_modifier_colonnes.clicked.connect(self.modifier_colonnes)
+        layout.addWidget(self.btn_modifier_colonnes)
 
         self.setLayout(layout)
 
-        # Variables de fichier
         self.chemin_fichier_entrée = None
         self.chemin_fichier_sortie = None
         self.format_source = None
@@ -137,7 +110,6 @@ class ConvertisseurCSV(QWidget):
             self.chemin_fichier_entrée = fichier_entrée
             self.label.setText(f"Fichier chargé : {fichier_entrée}")
             self.format_source, self.langue_source = self.detecter_format_et_langue(fichier_entrée)
-
             if self.format_source:
                 self.label_format_source.setText(f"Format source détecté : {self.format_source}")
                 self.label_langue_source.setText(f"Langue détectée : {self.langue_source}")
@@ -179,11 +151,9 @@ class ConvertisseurCSV(QWidget):
         with open(fichier_csv, 'r', newline='', encoding='utf-8') as fichier:
             lecteur_csv = csv.reader(fichier)
             self.donnees_csv = list(lecteur_csv)
-
-        # Charger les données dans le tableau
         if self.donnees_csv:
             en_tetes = self.donnees_csv[0]
-            self.table_widget.setColumnCount(len(en_tetes) + 1)  # Une colonne supplémentaire pour les checkbox
+            self.table_widget.setColumnCount(len(en_tetes) + 1)
             self.table_widget.setRowCount(len(self.donnees_csv) - 1)
             self.table_widget.setHorizontalHeaderLabels(["Sélectionner"] + en_tetes)
             for i, ligne in enumerate(self.donnees_csv[1:]):
@@ -256,18 +226,34 @@ class ConvertisseurCSV(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la conversion : {str(e)}")
 
-
     def preview_output(self):
-        # Afficher un aperçu du fichier de sortie
         try:
             format_sortie = self.combo_sortie.currentText()
             colonnes_sortie = self.obtenir_colonnes(format_sortie, 'Anglais')
-            preview_text = "Aperçu du fichier de sortie:\n"
-            preview_text += ", ".join(colonnes_sortie) + "\n"
-            for row in self.donnees_csv[1:6]:  # Prévisualisation des 5 premières lignes
+
+            preview_dialog = QDialog(self)
+            preview_dialog.setWindowTitle("Aperçu du fichier de sortie")
+            preview_dialog.setGeometry(100, 100, 800, 300)
+
+            layout = QVBoxLayout()
+
+            table_preview = QTableWidget(preview_dialog)
+            table_preview.setColumnCount(len(colonnes_sortie))
+            table_preview.setHorizontalHeaderLabels(colonnes_sortie)
+
+            table_preview.setRowCount(min(5, len(self.donnees_csv) - 1))
+
+            for row_idx, row in enumerate(self.donnees_csv[1:6]):
                 row_convertie = self.convertir_ligne(row, self.format_source, format_sortie)
-                preview_text += ", ".join(row_convertie.values()) + "\n"
-            QMessageBox.information(self, "Aperçu", preview_text)
+                for col_idx, col in enumerate(row_convertie.values()):
+                    item = QTableWidgetItem(col)
+                    table_preview.setItem(row_idx, col_idx, item)
+
+            table_preview.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            layout.addWidget(table_preview)
+            preview_dialog.setLayout(layout)
+            preview_dialog.exec_()
+
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Impossible d'afficher l'aperçu : {str(e)}")
 
@@ -331,8 +317,8 @@ class ConvertisseurCSV(QWidget):
             return '200'
         elif colonne == 'enablepartial':
             return 'off'
-        return ''  # Retourner une chaîne vide si aucune correspondance n'est trouvée
-        
+        return ''
+
     def exporter_pdf(self):
         fichier_pdf, _ = QFileDialog.getSaveFileName(self, "Exporter en PDF", "", "Fichiers PDF (*.pdf)")
         if fichier_pdf:
@@ -340,7 +326,7 @@ class ConvertisseurCSV(QWidget):
             pdf.add_page()
             pdf.set_font("Arial", size=12)
             pdf.cell(200, 10, txt="Aperçu du fichier de sortie", ln=True, align="C")
-            for row in self.donnees_csv[:6]:  # Exemple : prévisualisation des premières lignes
+            for row in self.donnees_csv[:6]:
                 row_convertie = self.convertir_ligne(row, self.format_source, self.combo_sortie.currentText())
                 pdf.cell(200, 10, txt=", ".join(row_convertie.values()), ln=True)
             pdf.output(fichier_pdf)
@@ -364,57 +350,12 @@ class ConvertisseurCSV(QWidget):
 
     def nettoyer_donnees(self):
         for row in range(self.table_widget.rowCount()):
-            for col in range(1, self.table_widget.columnCount()):  # Ignorer la colonne des checkbox
+            for col in range(1, self.table_widget.columnCount()):
                 item = self.table_widget.item(row, col)
                 if item and item.text():
-                    # Nettoyage de texte : Suppression des espaces en trop
                     cleaned_text = item.text().strip()
                     self.table_widget.setItem(row, col, QTableWidgetItem(cleaned_text))
         QMessageBox.information(self, "Nettoyage des données", "Les données ont été nettoyées avec succès.")
-
-    def sauvegarder_modifications(self):
-        fichier_sortie, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier CSV", "", "Fichiers CSV (*.csv)")
-        if fichier_sortie:
-            try:
-                # Sauvegarder les modifications dans l'historique pour permettre annulation
-                self.historique_modifications.append(self.donnees_csv.copy())
-                
-                # Sauvegarder les données éditées dans le fichier CSV
-                with open(fichier_sortie, 'w', newline='', encoding='utf-8') as fichier:
-                    ecrivain_csv = csv.writer(fichier)
-                    en_tetes = [self.table_widget.horizontalHeaderItem(col).text() for col in range(1, self.table_widget.columnCount())]  # Ignorer la colonne des checkbox
-                    ecrivain_csv.writerow(en_tetes)
-                    for row in range(self.table_widget.rowCount()):
-                        ligne = [self.table_widget.item(row, col).text() if self.table_widget.item(row, col) else '' for col in range(1, self.table_widget.columnCount())]
-                        ecrivain_csv.writerow(ligne)
-
-                QMessageBox.information(self, "Succès", f"Les modifications ont été sauvegardées dans le fichier : {fichier_sortie}")
-            except Exception as e:
-                QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la sauvegarde : {str(e)}")
-
-    def annuler_modification(self):
-        if self.historique_modifications:
-            # Restaurer la dernière modification enregistrée
-            self.donnees_csv = self.historique_modifications.pop()
-            self.charger_donnees_csv_from_list(self.donnees_csv)
-            QMessageBox.information(self, "Annulation", "La dernière modification a été annulée.")
-        else:
-            QMessageBox.warning(self, "Avertissement", "Aucune modification à annuler.")
-
-    def charger_donnees_csv_from_list(self, data_list):
-        # Méthode pour recharger les données CSV dans le tableau à partir d'une liste
-        if data_list:
-            en_tetes = data_list[0]
-            self.table_widget.setColumnCount(len(en_tetes) + 1)  # Une colonne supplémentaire pour les checkbox
-            self.table_widget.setRowCount(len(data_list) - 1)
-            self.table_widget.setHorizontalHeaderLabels(["Sélectionner"] + en_tetes)
-            for i, ligne in enumerate(data_list[1:]):
-                checkbox = QCheckBox()
-                self.table_widget.setCellWidget(i, 0, checkbox)
-                for j, valeur in enumerate(ligne):
-                    item = QTableWidgetItem(valeur)
-                    self.table_widget.setItem(i, j + 1, item)
-            self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def exporter_json(self):
         fichier_json, _ = QFileDialog.getSaveFileName(self, "Sauvegarder fichier JSON", "", "Fichiers JSON (*.json)")
@@ -444,7 +385,18 @@ class ConvertisseurCSV(QWidget):
                     break
             self.table_widget.setRowHidden(row, hide_row)
 
-# Initialisation de l'application
+    def modifier_colonnes(self):
+        try:
+            for col in range(1, self.table_widget.columnCount()):
+                current_header = self.table_widget.horizontalHeaderItem(col).text()
+                new_header, ok = QInputDialog.getText(self, 'Modifier le nom de la colonne', f'Nom actuel: {current_header}')
+                if ok and new_header:
+                    self.table_widget.setHorizontalHeaderItem(col, QTableWidgetItem(new_header))
+            QMessageBox.information(self, "Succès", "Les noms de colonnes ont été modifiés avec succès.")
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Une erreur s'est produite lors de la modification des colonnes : {str(e)}")
+
+
 def main():
     app = QApplication(sys.argv)
     fenetre = ConvertisseurCSV()
