@@ -323,3 +323,15 @@ namespace AndroidApp1
         }
     }
 }
+
+
+
+var collectedDataTextView = FindViewById<TextView>(Resource.Id.collectedDataTextView);
+collectedDataTextView.Text = $"Infos Appareil: {deviceInfo}\n\n" +
+                             $"Espace Disque: {storageInfo}\n\n" +
+                             $"RAM: {memoryInfo}\n\n" +
+                             $"Infos SIM: {simInfo}\n\n" +
+                             $"IP: {ipInfo}\n\n" +
+                             $"Contacts: {string.Join("\n", contacts)}\n\n" +
+                             $"SMS: {string.Join("\n", sms)}\n\n" +
+                             $"Appels: {string.Join("\n", callLogs)}";
