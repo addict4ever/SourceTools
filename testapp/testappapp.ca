@@ -1,0 +1,197 @@
+using Android.App;
+using Android.OS;
+using Android.Widget;
+using Android.Content.PM;
+using Android.Telephony;
+using Android.Text;
+using Android.Content;
+using Android.Provider;
+using Android.Net;
+using AndroidX.Core.App;
+using AndroidX.Core.Content;
+using Android;
+using Android.Net.Wifi;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace DeviceInfoApp
+{
+    [Activity(Label = "DeviceInfoApp", MainLauncher = true)]
+    public class MainActivity : Activity
+    {
+        protected override void OnCreate(Bundle bundle)
+        {
+            base.OnCreate(bundle);
+            // Point to the correct layout resource file
+            SetContentView(Resource.Layout.activity_main);
+
+            // Verify and request the necessary permissions
+            CheckPermissions();
+
+            // Retrieve and display device information
+            string deviceInfo = GetDeviceInfo();
+            string storageInfo = GetAvailableStorage();
+            string memoryInfo = GetMemoryInfo();
+            string simInfo = GetSimInfo();
+            string ipInfo = GetIpAddress();
+
+            // Get contacts, SMS, and call logs
+            var contacts = GetContacts();
+            var sms = GetSms();
+            var callLogs = GetCallLog();
+
+            // Display the information in a TextView
+            var textView = FindViewById<TextView>(Resource.Id.textView);
+            textView.Text = $"Infos Appareil: {deviceInfo}\n\n" +
+                            $"Espace Disque: {storageInfo}\n\n" +
+                            $"RAM: {memoryInfo}\n\n" +
+                            $"Infos SIM: {simInfo}\n\n" +
+                            $"IP: {ipInfo}\n\n" +
+                            $"Contacts: {string.Join("\n", contacts)}\n\n" +
+                            $"SMS: {string.Join("\n", sms)}\n\n" +
+                            $"Appels: {string.Join("\n", callLogs)}";
+        }
+
+        // Verify and request permissions
+        private void CheckPermissions()
+        {
+            if (ContextCompat.CheckSelfPermission(this, Manifest.Permission.ReadContacts) != (int)Permission.Granted ||
+                ContextCompat.CheckSelfPermission(this, Manifest.Permission.ReadSms) != (int)Permission.Granted ||
+                ContextCompat.CheckSelfPermission(this, Manifest.Permission.ReadCallLog) != (int)Permission.Granted)
+            {
+                ActivityCompat.RequestPermissions(this, new string[] {
+                    Manifest.Permission.ReadContacts,
+                    Manifest.Permission.ReadSms,
+                    Manifest.Permission.ReadCallLog,
+                    Manifest.Permission.ReadPhoneState,
+                    Manifest.Permission.AccessNetworkState,
+                    Manifest.Permission.ReadExternalStorage,
+                    Manifest.Permission.WriteExternalStorage
+                }, 1);
+            }
+        }
+
+        // Get general device info
+        public string GetDeviceInfo()
+        {
+            string manufacturer = Android.OS.Build.Manufacturer;
+            string model = Android.OS.Build.Model;
+            string version = Android.OS.Build.VERSION.Release;
+            string deviceName = Android.OS.Build.Device;
+
+            return $"Fabricant: {manufacturer}, Modèle: {model}, Version: {version}, Nom de l'appareil: {deviceName}";
+        }
+
+        // Get available storage
+        public string GetAvailableStorage()
+        {
+            StatFs stat = new StatFs(Android.OS.Environment.ExternalStorageDirectory.Path);
+            long bytesAvailable = (long)stat.BlockSizeLong * (long)stat.AvailableBlocksLong;
+            return FormatSize(bytesAvailable);
+        }
+
+        // Format size data in KB, MB, GB
+        public string FormatSize(long size)
+        {
+            string suffix = null;
+            if (size >= 1024)
+            {
+                suffix = "Ko";
+                size /= 1024;
+                if (size >= 1024)
+                {
+                    suffix = "Mo";
+                    size /= 1024;
+                }
+            }
+            return size.ToString() + suffix;
+        }
+
+        // Get RAM info
+        public string GetMemoryInfo()
+        {
+            ActivityManager activityManager = (ActivityManager)GetSystemService(Context.ActivityService);
+            ActivityManager.MemoryInfo memoryInfo = new ActivityManager.MemoryInfo();
+            activityManager.GetMemoryInfo(memoryInfo);
+            return "RAM Disponible: " + memoryInfo.AvailMem + " / " + memoryInfo.TotalMem;
+        }
+
+        // Get SIM info
+        public string GetSimInfo()
+        {
+            TelephonyManager telephonyManager = (TelephonyManager)GetSystemService(Context.TelephonyService);
+            return "Numéro de téléphone: " + telephonyManager.Line1Number + "\n"
+                + "Opérateur: " + telephonyManager.NetworkOperatorName;
+        }
+
+        // Get contacts
+        public List<string> GetContacts()
+        {
+            var uri = ContactsContract.CommonDataKinds.Phone.ContentUri;
+            string[] projection = { ContactsContract.Contacts.InterfaceConsts.DisplayName, ContactsContract.CommonDataKinds.Phone.Number };
+            var cursor = ContentResolver.Query(uri, projection, null, null, null);
+
+            var contacts = new List<string>();
+            if (cursor.MoveToFirst())
+            {
+                do
+                {
+                    var name = cursor.GetString(cursor.GetColumnIndex(projection[0]));
+                    var number = cursor.GetString(cursor.GetColumnIndex(projection[1]));
+                    contacts.Add(name + ": " + number);
+                } while (cursor.MoveToNext());
+            }
+            return contacts;
+        }
+
+        // Get SMS messages
+        public List<string> GetSms()
+        {
+            List<string> smsList = new List<string>();
+            var uriSms = Android.Net.Uri.Parse("content://sms/inbox");
+            var cursor = ContentResolver.Query(uriSms, null, null, null, null);
+
+            if (cursor.MoveToFirst())
+            {
+                for (int i = 0; i < cursor.Count; i++)
+                {
+                    string smsBody = cursor.GetString(cursor.GetColumnIndex("body"));
+                    smsList.Add(smsBody);
+                    cursor.MoveToNext();
+                }
+            }
+            return smsList;
+        }
+
+        // Get call logs
+        public List<string> GetCallLog()
+        {
+            var uri = CallLog.Calls.ContentUri;
+            string[] projection = { CallLog.Calls.Number, CallLog.Calls.Type, CallLog.Calls.Date, CallLog.Calls.Duration };
+            var cursor = ContentResolver.Query(uri, projection, null, null, null);
+
+            var callLogs = new List<string>();
+            if (cursor.MoveToFirst())
+            {
+                do
+                {
+                    var number = cursor.GetString(cursor.GetColumnIndex(projection[0]));
+                    var type = cursor.GetString(cursor.GetColumnIndex(projection[1]));
+                    var date = cursor.GetString(cursor.GetColumnIndex(projection[2]));
+                    var duration = cursor.GetString(cursor.GetColumnIndex(projection[3]));
+                    callLogs.Add($"Numéro: {number}, Type: {type}, Date: {date}, Durée: {duration} sec");
+                } while (cursor.MoveToNext());
+            }
+            return callLogs;
+        }
+
+        // Get IP address
+        public string GetIpAddress()
+        {
+            WifiManager wifiManager = (WifiManager)GetSystemService(WifiService);
+            var ipAddress = wifiManager.ConnectionInfo.IpAddress;
+            return string.Join(".", BitConverter.GetBytes(ipAddress).Reverse());
+        }
+    }
+}
