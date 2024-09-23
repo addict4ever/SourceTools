@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur CSV</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        .editable {
+            background-color: #f9f9f9;
+        }
+        input[type="file"] {
+            margin: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Éditeur de fichiers CSV</h1>
+    <input type="file" id="csvFile" accept=".csv" />
+    <button onclick="addRow()">Ajouter une ligne</button>
+    <button onclick="exportCSV()">Exporter CSV</button>
+    <table id="csvTable">
+        <thead id="csvHeader"></thead>
+        <tbody id="csvBody"></tbody>
+    </table>
+
+    <script>
+        let csvData = [];
+
+        // Fonction pour lire et afficher le fichier CSV
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const csv = event.target.result;
+                parseCSV(csv);
+            };
+            
+            reader.readAsText(file);
+        });
+
+        // Fonction pour parser le CSV et l'afficher
+        function parseCSV(csv) {
+            const rows = csv.split('\n');
+            csvData = rows.map(row => row.split(','));
+            displayTable();
+        }
+
+        // Affichage du tableau HTML avec les données CSV
+        function displayTable() {
+            const tableHeader = document.getElementById('csvHeader');
+            const tableBody = document.getElementById('csvBody');
+            
+            tableHeader.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (csvData.length > 0) {
+                // Créer l'en-tête
+                const headerRow = document.createElement('tr');
+                csvData[0].forEach(cell => {
+                    const th = document.createElement('th');
+                    th.textContent = cell;
+                    headerRow.appendChild(th);
+                });
+                tableHeader.appendChild(headerRow);
+            }
+
+            // Créer le corps du tableau
+            for (let i = 1; i < csvData.length; i++) {
+                const row = document.createElement('tr');
+                csvData[i].forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.classList.add('editable');
+                    td.textContent = cell;
+                    td.addEventListener('input', function() {
+                        csvData[i][index] = td.textContent;
+                    });
+                    row.appendChild(td);
+                });
+                tableBody.appendChild(row);
+            }
+        }
+
+        // Fonction pour ajouter une ligne
+        function addRow() {
+            const newRow = new Array(csvData[0].length).fill('');
+            csvData.push(newRow);
+            displayTable();
+        }
+
+        // Fonction pour exporter les données modifiées au format CSV
+        function exportCSV() {
+            let csvContent = csvData.map(e => e.join(",")).join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "modified_file.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+</body>
+</html>
