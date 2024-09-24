@@ -1,12 +1,13 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox
 from pyrad.client import Client
 from pyrad.packet import AccessRequest, AccessAccept, AccessReject
+import select
 
-class RadiusTester(QMainWindow):
+class RadiusClient(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("RADIUS Server Tester")
+        self.setWindowTitle("RADIUS Client Tester")
 
         # Server Address
         self.server_label = QLabel("Server Address:")
@@ -64,25 +65,36 @@ class RadiusTester(QMainWindow):
             client = Client(server=server, secret=secret)
             client.auth_port = port
 
-            # Create RADIUS authentication request
+            # Créer une requête d'authentification
             req = client.CreateAuthPacket(code=AccessRequest, User_Name=username)
             req["User-Password"] = req.PwCrypt(password)
 
-            # Send request and get reply
-            reply = client.SendPacket(req)
+            # Configurer select.poll pour surveiller les événements de communication
+            poller = select.poll()
+            poller.register(client.socket, select.POLLIN)
 
-            # Check the response from the server
+            # Envoyer la requête et attendre la réponse
+            client.SendPacket(req)
+
+            # Poller pour vérifier la réponse du serveur
+            events = poller.poll(5000)  # Timeout de 5 secondes
+            if not events:
+                QMessageBox.critical(self, "Error", "Timeout: No response from server")
+                return
+
+            reply = client.RecvPacket()
             if reply.code == AccessAccept:
                 QMessageBox.information(self, "Success", "Access-Accept received: Connection Successful")
             elif reply.code == AccessReject:
                 QMessageBox.warning(self, "Failed", "Access-Reject received: Invalid credentials")
             else:
-                QMessageBox.critical(self, "Error", "No response from server or unknown error")
+                QMessageBox.critical(self, "Error", "Unknown response code from server")
+
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = RadiusTester()
+    window = RadiusClient()
     window.show()
     sys.exit(app.exec_())
