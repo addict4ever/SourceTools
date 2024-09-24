@@ -19,7 +19,7 @@
         .editable {
             background-color: #f9f9f9;
         }
-        input[type="file"] {
+        input[type="file"], input[type="text"], select {
             margin: 20px;
         }
     </style>
@@ -30,6 +30,14 @@
     <input type="file" id="csvFile" accept=".csv" />
     <button onclick="addRow()">Ajouter une ligne</button>
     <button onclick="exportCSV()">Exporter CSV</button>
+    <button onclick="resetTable()">Réinitialiser le tableau</button>
+    
+    <br>
+    <label for="filterField">Filtrer par champ :</label>
+    <select id="filterField"></select>
+    <input type="text" id="filterValue" placeholder="Valeur à filtrer">
+    <button onclick="filterTable()">Filtrer</button>
+
     <table id="csvTable">
         <thead id="csvHeader"></thead>
         <tbody id="csvBody"></tbody>
@@ -37,8 +45,8 @@
 
     <script>
         let csvData = [];
+        let originalCsvData = [];
 
-        // Fonction pour lire et afficher le fichier CSV
         document.getElementById('csvFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -51,14 +59,14 @@
             reader.readAsText(file);
         });
 
-        // Fonction pour parser le CSV et l'afficher
         function parseCSV(csv) {
             const rows = csv.split('\n');
             csvData = rows.map(row => row.split(','));
+            originalCsvData = JSON.parse(JSON.stringify(csvData)); // Backup
             displayTable();
+            populateFilterFields();
         }
 
-        // Affichage du tableau HTML avec les données CSV
         function displayTable() {
             const tableHeader = document.getElementById('csvHeader');
             const tableBody = document.getElementById('csvBody');
@@ -67,17 +75,16 @@
             tableBody.innerHTML = '';
 
             if (csvData.length > 0) {
-                // Créer l'en-tête
                 const headerRow = document.createElement('tr');
-                csvData[0].forEach(cell => {
+                csvData[0].forEach((cell, index) => {
                     const th = document.createElement('th');
                     th.textContent = cell;
+                    th.onclick = () => sortTableByColumn(index); // Sort by column
                     headerRow.appendChild(th);
                 });
                 tableHeader.appendChild(headerRow);
             }
 
-            // Créer le corps du tableau
             for (let i = 1; i < csvData.length; i++) {
                 const row = document.createElement('tr');
                 csvData[i].forEach((cell, index) => {
@@ -90,18 +97,21 @@
                     });
                     row.appendChild(td);
                 });
+
+                const deleteButton = document.createElement('td');
+                deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
+                row.appendChild(deleteButton);
+
                 tableBody.appendChild(row);
             }
         }
 
-        // Fonction pour ajouter une ligne
         function addRow() {
             const newRow = new Array(csvData[0].length).fill('');
             csvData.push(newRow);
             displayTable();
         }
 
-        // Fonction pour exporter les données modifiées au format CSV
         function exportCSV() {
             let csvContent = csvData.map(e => e.join(",")).join("\n");
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -113,6 +123,46 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function resetTable() {
+            csvData = JSON.parse(JSON.stringify(originalCsvData));
+            displayTable();
+        }
+
+        function filterTable() {
+            const field = document.getElementById('filterField').value;
+            const value = document.getElementById('filterValue').value;
+
+            if (field && value) {
+                csvData = [csvData[0]].concat(originalCsvData.filter(row => row[field].includes(value)));
+            } else {
+                csvData = JSON.parse(JSON.stringify(originalCsvData));
+            }
+
+            displayTable();
+        }
+
+        function populateFilterFields() {
+            const select = document.getElementById('filterField');
+            select.innerHTML = '';
+            csvData[0].forEach((header, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = header;
+                select.appendChild(option);
+            });
+        }
+
+        function deleteRow(rowIndex) {
+            csvData.splice(rowIndex, 1);
+            displayTable();
+        }
+
+        function sortTableByColumn(columnIndex) {
+            const isAscending = csvData[1][columnIndex] < csvData[csvData.length - 1][columnIndex];
+            csvData = [csvData[0]].concat(csvData.slice(1).sort((a, b) => isAscending ? a[columnIndex].localeCompare(b[columnIndex]) : b[columnIndex].localeCompare(a[columnIndex])));
+            displayTable();
         }
     </script>
 
