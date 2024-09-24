@@ -1,0 +1,84 @@
+<script>
+// Variables supplémentaires pour gérer la pagination et le nombre de lignes sélectionnées
+let rowsToPrint = 20; // Nombre par défaut pour l'impression
+let columnColors = {}; // Stocke les couleurs par colonne
+
+// Mise à jour du nombre de lignes à afficher
+document.getElementById('rowsPerPage').addEventListener('change', function() {
+    rowsPerPage = parseInt(this.value);
+    currentPage = 1;
+    paginateTable();
+});
+
+// Mise à jour du nombre de lignes à imprimer
+document.getElementById('rowsPerPage').addEventListener('change', function() {
+    rowsToPrint = parseInt(this.value);
+});
+
+// Fonction pour afficher les lignes avec pagination
+function paginateTable() {
+    const tableBody = document.getElementById('csvBody');
+    const totalRows = csvData.length;
+    const startIndex = (currentPage - 1) * rowsPerPage + 1;
+    const endIndex = Math.min(startIndex + rowsPerPage - 1, totalRows - 1);
+    const visibleRows = csvData.slice(startIndex, endIndex + 1);
+
+    tableBody.innerHTML = '';
+    visibleRows.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        row.forEach((cell, colIndex) => {
+            const td = document.createElement('td');
+            td.textContent = cell;
+            if (colIndex === selectedColumn && selectedColor !== '') {
+                td.style.backgroundColor = selectedColor;
+            }
+            tr.appendChild(td);
+        });
+        tableBody.appendChild(tr);
+    });
+}
+
+// Gestion de l'impression prenant en compte la pagination
+function printTable() {
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Impression du tableau</title>');
+    printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } table, th, td { border: 1px solid #ddd; } th, td { padding: 12px; text-align: left; } th { background-color: #4CAF50; color: white; } td { background-color: #f9f9f9; }</style>');
+    printWindow.document.write('</head><body>');
+
+    // Génération du tableau avec le nombre de lignes sélectionnées
+    const totalPages = Math.ceil((csvData.length - 1) / rowsToPrint);
+    for (let page = 0; page < totalPages; page++) {
+        printWindow.document.write('<table><thead>');
+        printWindow.document.write('<tr>');
+        csvData[0].forEach(header => {
+            printWindow.document.write('<th>' + header + '</th>');
+        });
+        printWindow.document.write('</tr></thead><tbody>');
+
+        const startIndex = page * rowsToPrint + 1;
+        const endIndex = Math.min(startIndex + rowsToPrint - 1, csvData.length - 1);
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            printWindow.document.write('<tr>');
+            csvData[i].forEach((cell, colIndex) => {
+                let tdStyle = '';
+                if (columnColors[colIndex]) {
+                    tdStyle = `style="background-color:${columnColors[colIndex]}"`;
+                }
+                printWindow.document.write('<td ' + tdStyle + '>' + cell + '</td>');
+            });
+            printWindow.document.write('</tr>');
+        }
+        printWindow.document.write('</tbody></table>');
+
+        if (page < totalPages - 1) {
+            printWindow.document.write('<div style="page-break-after: always;"></div>');
+        }
+    }
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
+</script>
