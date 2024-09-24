@@ -1,7 +1,6 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QHBoxLayout, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QComboBox, QMessageBox
 from pyrad.client import Client
-from pyrad.dictionary import Dictionary
 from pyrad.packet import AccessRequest, AccessAccept, AccessReject
 
 class RadiusTester(QMainWindow):
@@ -31,11 +30,6 @@ class RadiusTester(QMainWindow):
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
 
-        # Authentication Type
-        self.auth_type_label = QLabel("Authentication Type:")
-        self.auth_type_input = QComboBox()
-        self.auth_type_input.addItems(["PAP", "CHAP", "MS-CHAPv2"])
-
         # Test Button
         self.test_button = QPushButton("Test Connection")
         self.test_button.clicked.connect(self.test_radius_connection)
@@ -52,8 +46,6 @@ class RadiusTester(QMainWindow):
         layout.addWidget(self.username_input)
         layout.addWidget(self.password_label)
         layout.addWidget(self.password_input)
-        layout.addWidget(self.auth_type_label)
-        layout.addWidget(self.auth_type_input)
         layout.addWidget(self.test_button)
 
         # Central widget
@@ -67,16 +59,19 @@ class RadiusTester(QMainWindow):
         secret = self.secret_input.text().encode('utf-8')
         username = self.username_input.text()
         password = self.password_input.text()
-        auth_type = self.auth_type_input.currentText()
 
         try:
-            client = Client(server=server, secret=secret, dict=Dictionary("path_to_radius_dictionary"))
+            client = Client(server=server, secret=secret)
             client.auth_port = port
 
+            # Create RADIUS authentication request
             req = client.CreateAuthPacket(code=AccessRequest, User_Name=username)
             req["User-Password"] = req.PwCrypt(password)
 
+            # Send request and get reply
             reply = client.SendPacket(req)
+
+            # Check the response from the server
             if reply.code == AccessAccept:
                 QMessageBox.information(self, "Success", "Access-Accept received: Connection Successful")
             elif reply.code == AccessReject:
