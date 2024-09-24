@@ -69,26 +69,23 @@ class RadiusClient(QMainWindow):
             req = client.CreateAuthPacket(code=AccessRequest, User_Name=username)
             req["User-Password"] = req.PwCrypt(password)
 
-            # Configurer select.poll pour surveiller les événements de communication
-            poller = select.poll()
-            poller.register(client.socket, select.POLLIN)
-
-            # Envoyer la requête et attendre la réponse
+            # Envoyer la requête
             client.SendPacket(req)
 
-            # Poller pour vérifier la réponse du serveur
-            events = poller.poll(5000)  # Timeout de 5 secondes
-            if not events:
-                QMessageBox.critical(self, "Error", "Timeout: No response from server")
-                return
+            # Utiliser select.select() pour attendre la réponse avec un timeout de 5 secondes
+            ready_sockets, _, _ = select.select([client.socket], [], [], 5.0)
 
-            reply = client.RecvPacket()
-            if reply.code == AccessAccept:
-                QMessageBox.information(self, "Success", "Access-Accept received: Connection Successful")
-            elif reply.code == AccessReject:
-                QMessageBox.warning(self, "Failed", "Access-Reject received: Invalid credentials")
+            if ready_sockets:
+                # Recevoir la réponse
+                reply = client.RecvPacket()
+                if reply.code == AccessAccept:
+                    QMessageBox.information(self, "Success", "Access-Accept received: Connection Successful")
+                elif reply.code == AccessReject:
+                    QMessageBox.warning(self, "Failed", "Access-Reject received: Invalid credentials")
+                else:
+                    QMessageBox.critical(self, "Error", "Unknown response code from server")
             else:
-                QMessageBox.critical(self, "Error", "Unknown response code from server")
+                QMessageBox.critical(self, "Error", "Timeout: No response from server")
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred: {e}")
