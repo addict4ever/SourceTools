@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éditeur CSV avec Pagination et Impression</title>
+    <title>Éditeur CSV avec Options Avancées</title>
     <style>
-        /* Styles de base */
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f4f4f9;
@@ -13,64 +12,52 @@
             padding: 20px;
             color: #333;
         }
-
         h1 {
             text-align: center;
             color: #4CAF50;
         }
-
         .container {
-            max-width: 2400px;
+            max-width: 1200px;
             margin: 0 auto;
             background-color: white;
             padding: 20px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         table {
             border-collapse: collapse;
             width: 100%;
             margin: 20px 0;
         }
-
         table, th, td {
             border: 1px solid #ddd;
         }
-
         th, td {
             padding: 12px;
             text-align: left;
         }
-
         th {
             background-color: #4CAF50;
             color: white;
             cursor: pointer;
         }
-
         td.editable {
             background-color: #f9f9f9;
         }
-
         input[type="file"], input[type="text"], select, button {
             margin: 10px 5px;
             padding: 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
         }
-
         button {
             background-color: #4CAF50;
             color: white;
             cursor: pointer;
             transition: background-color 0.3s;
         }
-
         button:hover {
             background-color: #45a049;
         }
-
-        /* Palette de couleurs */
         .color-option {
             display: inline-block;
             width: 30px;
@@ -79,35 +66,41 @@
             margin: 0 5px;
             cursor: pointer;
         }
-
-        .color-red { background-color: #FF6347; }
-        .color-blue { background-color: #1E90FF; }
-        .color-green { background-color: #32CD32; }
-        .color-yellow { background-color: #FFD700; }
-        .color-purple { background-color: #9370DB; }
+        .color-red { background-color: #FF6347; } /* Rouge */
+        .color-blue { background-color: #1E90FF; } /* Bleu */
+        .color-green { background-color: #32CD32; } /* Vert */
+        .color-yellow { background-color: #FFD700; } /* Jaune */
+        .color-purple { background-color: #9370DB; } /* Violet */
+        .color-lightgray { background-color: #D3D3D3; } /* Gris clair */
+        .color-orange { background-color: #FFA500; } /* Orange */
+        .color-lightblue { background-color: #ADD8E6; } /* Bleu clair */
+        .color-pink { background-color: #FFC0CB; } /* Rose */
+        .color-teal { background-color: #008080; } /* Sarcelle */
+        .color-beige { background-color: #F5F5DC; } /* Beige */
+        .color-lightgreen { background-color: #90EE90; } /* Vert clair */
+        .color-salmon { background-color: #FA8072; } /* Saumon */
+        .color-lavender { background-color: #E6E6FA; } /* Lavande */
+        .color-mint { background-color: #98FF98; } /* Menthe */
+        .color-peach { background-color: #FFDAB9; } /* Pêche */
+        .color-skyblue { background-color: #87CEEB; } /* Bleu ciel */
+        .color-coral { background-color: #FF7F50; } /* Corail */
         .selected { border: 2px solid black; }
 
-        /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
             margin-top: 20px;
         }
-
         .pagination button {
             margin: 0 5px;
         }
-
-        /* Impression */
         @media print {
             body * {
                 visibility: hidden;
             }
-
             #csvTable, #csvTable * {
                 visibility: visible;
             }
-
             #csvTable {
                 position: absolute;
                 left: 0;
@@ -117,36 +110,64 @@
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Éditeur de fichiers CSV</h1>
-    <input type="file" id="csvFile" accept=".csv" />
-    <button onclick="addRow()">Ajouter une ligne</button>
-    <button onclick="exportCSV()">Exporter CSV</button>
-    <button onclick="resetTable()">Réinitialiser le tableau</button>
-    <button onclick="printTable()">Imprimer</button>
-    <button onclick="exportHTML()">Exporter HTML</button>
+    <div class="container">
+        <h1>Éditeur de fichiers CSV Avancé</h1>
+        <input type="file" id="csvFile" accept=".csv" />
+        <button onclick="addRow()">➕ Ajouter une ligne</button>
+        <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
+        <button onclick="deleteEmptyRows()">🧹 Supprimer lignes vides</button>
+        <button onclick="mergeCSV()">🔗 Fusionner CSV</button>
+        <button onclick="detectDuplicates()">🔍 Détecter les doublons</button>
+        <button onclick="exportCSV()">💾 Exporter CSV</button>
+        <button onclick="resetTable()">🔄 Réinitialiser le tableau</button>
+        <button onclick="printTable()">🖨️ Imprimer</button>
+        <button onclick="exportHTML()">📄 Exporter HTML</button>
+        <button onclick="mergeCells()">⚙️ Fusionner cellules</button>
+        <button onclick="undo()">↩️ Annuler</button>
+        <button onclick="redo()">↪️ Refaire</button>
+    </div>
 
     <br><br>
 
-    <!-- Sélecteur de colonne et couleur -->
+    <label for="searchInput">Rechercher :</label>
+    <input type="text" id="searchInput" placeholder="Rechercher..." onkeyup="searchTable()">
+    <label for="replaceInput">Remplacer :</label>
+    <input type="text" id="replaceInput" placeholder="Remplacer..." />
+    <button onclick="replaceInTable()">Remplacer</button>
+
+    <br><br>
+
     <label for="columnSelector">Sélectionner une colonne :</label>
     <select id="columnSelector">
         <option value="-1">Aucune</option>
     </select>
 
     <br><br>
-    <label>Choisir une couleur :</label>
+
+    <label>Couleur :</label>
     <div id="colorPalette">
-        <div class="color-option color-red" onclick="selectColor('red')"></div>
-        <div class="color-option color-blue" onclick="selectColor('blue')"></div>
-        <div class="color-option color-green" onclick="selectColor('green')"></div>
-        <div class="color-option color-yellow" onclick="selectColor('yellow')"></div>
-        <div class="color-option color-purple" onclick="selectColor('purple')"></div>
+        <div class="color-option color-red" onclick="selectTextColor('red')"></div>
+        <div class="color-option color-blue" onclick="selectTextColor('blue')"></div>
+        <div class="color-option color-green" onclick="selectTextColor('green')"></div>
+        <div class="color-option color-yellow" onclick="selectTextColor('yellow')"></div>
+        <div class="color-option color-purple" onclick="selectTextColor('purple')"></div>
+        <div class="color-option color-lightgray" onclick="selectTextColor('lightgray')"></div>
+        <div class="color-option color-orange" onclick="selectTextColor('orange')"></div>
+        <div class="color-option color-lightblue" onclick="selectTextColor('lightblue')"></div>
+        <div class="color-option color-pink" onclick="selectTextColor('pink')"></div>
+        <div class="color-option color-teal" onclick="selectTextColor('teal')"></div>
+        <div class="color-option color-beige" onclick="selectTextColor('beige')"></div>
+        <div class="color-option color-lightgreen" onclick="selectTextColor('lightgreen')"></div>
+        <div class="color-option color-salmon" onclick="selectTextColor('salmon')"></div>
+        <div class="color-option color-lavender" onclick="selectTextColor('lavender')"></div>
+        <div class="color-option color-mint" onclick="selectTextColor('mint')"></div>
+        <div class="color-option color-peach" onclick="selectTextColor('peach')"></div>
+        <div class="color-option color-skyblue" onclick="selectTextColor('skyblue')"></div>
+        <div class="color-option color-coral" onclick="selectTextColor('coral')"></div>
     </div>
 
     <br>
 
-    <!-- Champ pour sélectionner le nombre de lignes par page -->
     <label for="rowsPerPage">Lignes par page :</label>
     <input type="number" id="rowsPerPage" value="20" min="1" max="100" />
 
@@ -155,31 +176,50 @@
         <tbody id="csvBody"></tbody>
     </table>
 
-    <!-- Pagination -->
     <div class="pagination">
         <button onclick="prevPage()">Précédent</button>
         <button onclick="nextPage()">Suivant</button>
     </div>
+
+    <label for="fontSelector">Changer police :</label>
+    <select id="fontSelector" onchange="changeFont()">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Georgia">Georgia</option>
+    </select>
+
+    <br><br>
+
+    <button onclick="boldText()">Mettre en Gras</button>
+    <button onclick="italicizeText()">Mettre en Italique</button>
+    <button onclick="underlineText()">Souligner</button>
+
+    <br><br>
+
+    <label for="fillColumn">Remplir colonne avec :</label>
+    <input type="text" id="fillColumnValue" placeholder="Entrez une valeur" />
+    <button onclick="fillColumn()">Remplir</button>
 </div>
 
 <script>
     let csvData = [];
     let originalCsvData = [];
-    let selectedColumns = {}; // Colonnes sélectionnées avec leurs couleurs
-    let currentPage = 1;     // Page actuelle
-    let rowsPerPage = 20;    // Nombre de lignes par page pour la pagination et l'impression par défaut
-    let rowsToPrint = 20;    // Nombre de lignes à imprimer
-    let highlightedCells = new Set(); // Stocke les cellules surlignées (bold)
+    let selectedColumns = {};
+    let currentPage = 1;
+    let rowsPerPage = 20;
+    let rowsToPrint = 20;
+    let highlightedCells = new Set();
+    let history = [];
+    let redoStack = [];
 
-    // Gestion de la sélection des lignes par page
     document.getElementById('rowsPerPage').addEventListener('change', function() {
         rowsPerPage = parseInt(this.value);
         rowsToPrint = parseInt(this.value);
-        currentPage = 1; // Remettre à la première page
+        currentPage = 1;
         paginateTable();
     });
 
-    // Lecture du fichier CSV
     document.getElementById('csvFile').addEventListener('change', function(e) {
         const file = e.target.files[0];
         const reader = new FileReader();
@@ -192,21 +232,16 @@
         reader.readAsText(file);
     });
 
-    // Parse le fichier CSV
     function parseCSV(csv) {
         const rows = csv.split('\n').map(row => row.split(','));
-
-        // Séparer les lignes de métadonnées et les lignes de données
-        const metaRows = rows.filter(row => row.length <= 2); // Lignes avec peu de colonnes
-        const dataRows = rows.filter(row => row.length > 2);  // Lignes avec plus de colonnes (données)
-
-        csvData = metaRows.concat(dataRows); // Combiner les deux
-        originalCsvData = JSON.parse(JSON.stringify(csvData)); // Sauvegarder la version originale
+        const metaRows = rows.filter(row => row.length <= 2);
+        const dataRows = rows.filter(row => row.length > 2);
+        csvData = metaRows.concat(dataRows);
+        originalCsvData = JSON.parse(JSON.stringify(csvData));
         displayTable();
-        populateColumnSelector(dataRows[0].length); // Passer le nombre de colonnes de données
+        populateColumnSelector(dataRows[0].length);
     }
 
-    // Affiche le tableau avec pagination
     function displayTable() {
         const tableHeader = document.getElementById('csvHeader');
         const tableBody = document.getElementById('csvBody');
@@ -219,7 +254,7 @@
             csvData[0].forEach((cell, index) => {
                 const th = document.createElement('th');
                 th.textContent = cell;
-                th.onclick = () => sortTableByColumn(index); // Tri par colonne
+                th.onclick = () => sortTableByColumn(index);
                 headerRow.appendChild(th);
             });
             const thDelete = document.createElement('th');
@@ -235,54 +270,65 @@
                 td.contentEditable = true;
                 td.classList.add('editable');
                 td.textContent = cell;
-
-                // Appliquer les couleurs si elles sont définies pour la colonne
                 if (selectedColumns[index]) {
                     td.style.backgroundColor = selectedColumns[index];
                 }
-
-                // Appliquer le style de surlignement si la cellule est dans le set
-                const cellId = `${i}-${index}`;
-                if (highlightedCells.has(cellId)) {
-                    td.style.fontWeight = 'bold';
-                }
-
-                // Événement pour sauvegarder les modifications
-                td.addEventListener('input', function() {
-                    csvData[i][index] = td.textContent;
-                });
-
-                // Événement pour surligner une cellule (gras) au clic
-                td.addEventListener('click', function() {
-                    toggleHighlightCell(i, index);
-                });
-
-                // Événement pour souligner une cellule au double-clic
-                td.addEventListener('dblclick', function() {
-                    toggleUnderlineCell(td);
-                });
-
                 row.appendChild(td);
             });
 
-            // Bouton pour supprimer la ligne
             const deleteButton = document.createElement('td');
             deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
             row.appendChild(deleteButton);
-
             tableBody.appendChild(row);
         }
+
         paginateTable();
     }
 
-    // Ajoute une nouvelle ligne vide
     function addRow() {
-        const newRow = new Array(csvData[0].length).fill('');
-        csvData.push(newRow);
+        // Vérifie s'il existe au moins une ligne dans csvData pour connaître le nombre de colonnes
+        if (csvData.length > 0) {
+            // Récupère le nombre de colonnes à partir de la première ligne
+            const columnCount = csvData[0].length;
+
+            // Crée une nouvelle ligne avec le même nombre de colonnes
+            const newRow = new Array(columnCount).fill('');
+
+            // Sauvegarder l'état pour permettre annulation
+            saveState();
+
+            // Ajoute la nouvelle ligne au tableau CSV
+            csvData.push(newRow);
+
+            // Met à jour l'affichage du tableau
+            displayTable();
+        } else {
+            // Si le tableau est vide, crée une ligne avec un nombre de colonnes par défaut, par exemple 6
+            const defaultColumnCount = 6;
+            const newRow = new Array(defaultColumnCount).fill('');
+
+            saveState();
+            csvData.push(newRow);
+            displayTable();
+        }
+    }
+
+    function deleteColumn() {
+        const columnSelector = document.getElementById('columnSelector');
+        const selectedColIndex = parseInt(columnSelector.value);
+        if (selectedColIndex !== -1 && confirm("Êtes-vous sûr de vouloir supprimer cette colonne ?")) {
+            saveState();
+            csvData.forEach(row => row.splice(selectedColIndex, 1));
+            displayTable();
+        }
+    }
+
+    function deleteEmptyRows() {
+        saveState();
+        csvData = csvData.filter(row => row.some(cell => cell.trim() !== ''));
         displayTable();
     }
 
-    // Exporte les données au format CSV
     function exportCSV() {
         let csvContent = csvData.map(e => e.join(",")).join("\n");
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -296,20 +342,39 @@
         document.body.removeChild(link);
     }
 
-    // Réinitialise le tableau aux données originales
     function resetTable() {
+        saveState();
         csvData = JSON.parse(JSON.stringify(originalCsvData));
-        selectedColumns = {}; // Réinitialiser les couleurs des colonnes
-        highlightedCells.clear(); // Réinitialiser les cellules surlignées
+        selectedColumns = {};
+        highlightedCells.clear();
         displayTable();
         resetColorPaletteSelection();
     }
 
-    // Remplit le sélecteur de colonnes
+    function saveState() {
+        history.push(JSON.parse(JSON.stringify(csvData)));
+        redoStack = [];
+    }
+
+    function undo() {
+        if (history.length > 0) {
+            redoStack.push(JSON.parse(JSON.stringify(csvData)));
+            csvData = history.pop();
+            displayTable();
+        }
+    }
+
+    function redo() {
+        if (redoStack.length > 0) {
+            history.push(JSON.parse(JSON.stringify(csvData)));
+            csvData = redoStack.pop();
+            displayTable();
+        }
+    }
+
     function populateColumnSelector(numCols) {
         const select = document.getElementById('columnSelector');
-        select.innerHTML = '<option value="-1">Aucune</option>'; // Option par défaut
-
+        select.innerHTML = '<option value="-1">Aucune</option>';
         for (let i = 0; i < numCols; i++) {
             const option = document.createElement('option');
             option.value = i;
@@ -318,24 +383,15 @@
         }
     }
 
-    // Sélection de la colonne
-    document.getElementById('columnSelector').addEventListener('change', function(e) {
-        selectedColumn = parseInt(e.target.value);
-    });
-
-    // Sélection de la couleur pour la colonne sélectionnée
-    function selectColor(color) {
-        if (selectedColumn === -1) {
-            alert("Veuillez sélectionner une colonne à colorier.");
-            return;
+    function selectTextColor(color) {
+        const columnSelector = document.getElementById('columnSelector');
+        const selectedColIndex = parseInt(columnSelector.value);
+        if (selectedColIndex !== -1) {
+            selectedColumns[selectedColIndex] = getColorCode(color);
+            applyColumnTextColors();
         }
-
-        selectedColumns[selectedColumn] = getColorCode(color);
-        applyColumnColors();
-        updateColorPaletteSelection(color);
     }
 
-    // Convertit le nom de la couleur en code couleur
     function getColorCode(color) {
         const colorMap = {
             'red': '#FF6347',
@@ -347,38 +403,28 @@
         return colorMap[color] || '';
     }
 
-    // Applique les couleurs aux colonnes sélectionnées
-    function applyColumnColors() {
+    function applyColumnTextColors() {
         const tableBody = document.getElementById('csvBody');
         tableBody.querySelectorAll('tr').forEach((row, rowIndex) => {
             row.querySelectorAll('td').forEach((cell, colIndex) => {
                 if (selectedColumns[colIndex]) {
-                    cell.style.backgroundColor = selectedColumns[colIndex];
+                    cell.style.color = selectedColumns[colIndex];
                 } else {
-                    cell.style.backgroundColor = ''; // Réinitialiser la couleur si aucune n'est sélectionnée
-                }
-
-                // Appliquer le style de surlignement si la cellule est dans le set
-                const cellId = `${rowIndex + 1}-${colIndex}`;
-                if (highlightedCells.has(cellId)) {
-                    cell.style.fontWeight = 'bold';
+                    cell.style.color = '';
                 }
             });
         });
     }
 
-    // Met à jour la sélection de la palette de couleurs
     function updateColorPaletteSelection(selectedColor) {
         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
         document.querySelector(`.color-${selectedColor}`).classList.add('selected');
     }
 
-    // Réinitialise la sélection de la palette de couleurs
     function resetColorPaletteSelection() {
         document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
     }
 
-    // Pagination : afficher la page actuelle avec le bon nombre de lignes
     function paginateTable() {
         const tableBody = document.getElementById('csvBody');
         const totalRows = csvData.length;
@@ -394,37 +440,12 @@
                 td.textContent = cell;
                 td.contentEditable = true;
                 td.classList.add('editable');
-
-                // Appliquer les couleurs si elles sont définies pour la colonne
                 if (selectedColumns[colIndex]) {
                     td.style.backgroundColor = selectedColumns[colIndex];
                 }
-
-                // Appliquer le style de surlignement si la cellule est dans le set
-                const cellId = `${startIndex + rowIndex}-${colIndex}`;
-                if (highlightedCells.has(cellId)) {
-                    td.style.fontWeight = 'bold';
-                }
-
-                // Événement pour sauvegarder les modifications
-                td.addEventListener('input', function() {
-                    csvData[startIndex + rowIndex][colIndex] = td.textContent;
-                });
-
-                // Événement pour surligner une cellule (gras) au clic
-                td.addEventListener('click', function() {
-                    toggleHighlightCell(startIndex + rowIndex, colIndex);
-                });
-
-                // Événement pour souligner une cellule au double-clic
-                td.addEventListener('dblclick', function() {
-                    toggleUnderlineCell(td);
-                });
-
                 tr.appendChild(td);
             });
 
-            // Bouton pour supprimer la ligne
             const deleteButton = document.createElement('td');
             deleteButton.innerHTML = `<button onclick="deleteRow(${startIndex + rowIndex})">Supprimer</button>`;
             tr.appendChild(deleteButton);
@@ -433,7 +454,6 @@
         });
     }
 
-    // Gérer la pagination : page suivante
     function nextPage() {
         const totalRows = csvData.length - 1;
         const totalPages = Math.ceil(totalRows / rowsPerPage);
@@ -443,7 +463,6 @@
         }
     }
 
-    // Gérer la pagination : page précédente
     function prevPage() {
         if (currentPage > 1) {
             currentPage--;
@@ -451,37 +470,25 @@
         }
     }
 
-    // Fonction pour imprimer le tableau avec les couleurs des colonnes
     function printTable() {
         const printWindow = window.open('', '', 'height=600,width=800');
         printWindow.document.write('<html><head><title>Impression du tableau</title>');
-        printWindow.document.write('<style>');
-        printWindow.document.write('table { border-collapse: collapse; width: 100%; }');
-        printWindow.document.write('table, th, td { border: 1px solid #ddd; }');
-        printWindow.document.write('th, td { padding: 12px; text-align: left; }');
-        printWindow.document.write('th { background-color: #4CAF50; color: white; }');
-        printWindow.document.write('td { background-color: #f9f9f9; }');
-        printWindow.document.write('</style>');
+        printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } table, th, td { border: 1px solid #ddd; } th, td { padding: 12px; text-align: left; } th { background-color: #4CAF50; color: white; } td { background-color: #f9f9f9; }</style>');
         printWindow.document.write('</head><body>');
 
-        const totalRows = csvData.length - 1; // Exclure l'en-tête
-        const totalPages = Math.ceil(totalRows / rowsToPrint); // Nombre total de pages nécessaires
+        const totalRows = csvData.length - 1;
+        const totalPages = Math.ceil(totalRows / rowsToPrint);
 
         for (let page = 0; page < totalPages; page++) {
             printWindow.document.write('<table><thead>');
             printWindow.document.write('<tr>');
-
-            // Imprimer l'en-tête du tableau
             csvData[0].forEach(header => {
                 printWindow.document.write('<th>' + header + '</th>');
             });
-            printWindow.document.write('<th>Actions</th>'); // Ajouter la colonne Actions
-
             printWindow.document.write('</tr></thead><tbody>');
 
-            // Imprimer les lignes de la page actuelle
-            const startIndex = page * rowsToPrint + 1;  // L'index de départ (commence après l'en-tête)
-            const endIndex = Math.min(startIndex + rowsToPrint - 1, csvData.length - 1); // L'index de fin
+            const startIndex = page * rowsToPrint + 1;
+            const endIndex = Math.min(startIndex + rowsToPrint - 1, csvData.length - 1);
 
             for (let i = startIndex; i <= endIndex; i++) {
                 printWindow.document.write('<tr>');
@@ -492,13 +499,9 @@
                     }
                     printWindow.document.write('<td ' + tdStyle + '>' + cell + '</td>');
                 });
-                printWindow.document.write('<td>Supprimer</td>'); // Placeholder pour les actions
                 printWindow.document.write('</tr>');
             }
-
             printWindow.document.write('</tbody></table>');
-
-            // Ajout d'une rupture de page entre chaque page sauf la dernière
             if (page < totalPages - 1) {
                 printWindow.document.write('<div style="page-break-after: always;"></div>');
             }
@@ -511,9 +514,8 @@
         printWindow.close();
     }
 
-    // Exporter le tableau en HTML
     function exportHTML() {
-        let table = document.getElementById("csvTable"); // Assume que le tableau a cet ID
+        let table = document.getElementById("csvTable");
         let htmlContent = `
             <!DOCTYPE html>
             <html lang="fr">
@@ -544,232 +546,108 @@
         URL.revokeObjectURL(url);
     }
 
-    // Supprime une ligne donnée
     function deleteRow(rowIndex) {
+        saveState();
         csvData.splice(rowIndex, 1);
         displayTable();
     }
 
-    // Trie le tableau par une colonne donnée
-    function sortTableByColumn(columnIndex) {
-        csvData.sort((a, b) => {
-const th = document.createElement('th');
-                th.textContent = cell;
-                th.onclick = () => sortTableByColumn(index); // Permet de trier selon la colonne
-                headerRow.appendChild(th);
-            });
-            tableHeader.appendChild(headerRow);
-        }
-
-        for (let i = 1; i < csvData.length; i++) {
-            const row = document.createElement('tr');
-            csvData[i].forEach((cell, index) => {
-                const td = document.createElement('td');
-                td.contentEditable = true;
-                td.classList.add('editable');
-                td.textContent = cell;
-
-                // Ajout de l'événement click pour surligner la cellule
-                td.addEventListener('click', function() {
-                    toggleHighlightCell(i - 1, index); // Gestion du surlignement (gras)
-                });
-
-                // Appliquer les couleurs des colonnes si définies
-                if (selectedColumns[index]) {
-                    td.style.backgroundColor = selectedColumns[index];
-                }
-
-                row.appendChild(td);
-            });
-
-            const deleteButton = document.createElement('td');
-            deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
-            row.appendChild(deleteButton);
-
-            tableBody.appendChild(row);
-        }
-        paginateTable();
+    function searchTable() {
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const tableBody = document.getElementById('csvBody');
+        tableBody.querySelectorAll('tr').forEach((row) => {
+            const found = Array.from(row.children).some((td) => td.textContent.toLowerCase().includes(searchInput));
+            row.style.display = found ? '' : 'none';
+        });
     }
 
-    // Sélection de la colonne et application des couleurs
-    function selectColor(color) {
+    function sortTableByColumn(columnIndex) {
+        saveState();
+        csvData.sort((a, b) => a[columnIndex].localeCompare(b[columnIndex]));
+        displayTable();
+    }
+
+    function boldText() {
+        document.execCommand('bold');
+    }
+
+    function italicizeText() {
+        document.execCommand('italic');
+    }
+
+    function underlineText() {
+        document.execCommand('underline');
+    }
+
+    function fillColumn() {
         const columnSelector = document.getElementById('columnSelector');
         const selectedColIndex = parseInt(columnSelector.value);
+        const value = document.getElementById('fillColumnValue').value;
         if (selectedColIndex !== -1) {
-            selectedColumns[selectedColIndex] = color; // Sauvegarder la couleur pour la colonne sélectionnée
-            applyColumnColors();
+            saveState();
+            csvData.forEach((row, i) => {
+                if (i > 0) {
+                    row[selectedColIndex] = value;
+                }
+            });
+            displayTable();
         }
     }
 
-    // Appliquer les couleurs aux colonnes
-    function applyColumnColors() {
-        const tableBody = document.getElementById('csvBody');
-        tableBody.querySelectorAll('tr').forEach((row, rowIndex) => {
-            row.querySelectorAll('td').forEach((cell, colIndex) => {
-                if (selectedColumns[colIndex]) {
-                    cell.style.backgroundColor = selectedColumns[colIndex];
-                } else {
-                    cell.style.backgroundColor = ''; // Réinitialiser la couleur si aucune n'est sélectionnée
-                }
-            });
+    function changeFont() {
+        const font = document.getElementById('fontSelector').value;
+        document.getElementById('csvBody').style.fontFamily = font;
+    }
+
+    function detectDuplicates() {
+        let duplicates = [];
+        let seen = new Set();
+        
+        // Parcours du tableau csvData pour détecter les lignes dupliquées
+        csvData.forEach((row, index) => {
+            let rowString = row.join(','); // Créer une chaîne de caractères unique pour chaque ligne
+            
+            if (seen.has(rowString)) {
+                duplicates.push(index); // Si la ligne est déjà vue, on l'ajoute comme doublon
+            } else {
+                seen.add(rowString); // Sinon, on l'ajoute dans l'ensemble des lignes vues
+            }
         });
-    }
 
-    // Ajoute une nouvelle ligne au tableau
-    function addRow() {
-        const newRow = new Array(csvData[0].length).fill('');
-        csvData.push(newRow);
-        displayTable();
-    }
-
-    // Exporter le tableau en CSV
-    function exportCSV() {
-        let csvContent = csvData.map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "modified_file.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    // Réinitialiser le tableau
-    function resetTable() {
-        csvData = JSON.parse(JSON.stringify(originalCsvData));
-        displayTable();
-    }
-
-    // Surligner une cellule lorsqu'elle est cliquée
-    function toggleHighlightCell(rowIndex, colIndex) {
-        const cellId = `${rowIndex}-${colIndex}`; // Identifiant unique pour chaque cellule
-        const cell = document.getElementById('csvBody').rows[rowIndex].cells[colIndex];
-
-        if (highlightedCells.has(cellId)) {
-            highlightedCells.delete(cellId);
-            cell.style.fontWeight = 'normal'; // Réinitialiser le style si déjà surligné
+        if (duplicates.length > 0) {
+            alert(`Lignes dupliquées trouvées aux index : ${duplicates.join(', ')}`);
+            highlightDuplicates(duplicates);
         } else {
-            highlightedCells.add(cellId);
-            cell.style.fontWeight = 'bold'; // Surligner la cellule sélectionnée
+            alert("Aucun doublon trouvé.");
         }
     }
 
-    // Gestion de la pagination pour afficher un nombre de lignes donné par page
-    function paginateTable() {
+    // Fonction pour surligner les lignes dupliquées
+    function highlightDuplicates(duplicateIndexes) {
         const tableBody = document.getElementById('csvBody');
-        const totalRows = csvData.length;
-        const startIndex = (currentPage - 1) * rowsPerPage + 1;
-        const endIndex = Math.min(startIndex + rowsPerPage - 1, totalRows - 1);
-        const visibleRows = csvData.slice(startIndex, endIndex + 1);
 
-        tableBody.innerHTML = '';
-        visibleRows.forEach((row, rowIndex) => {
-            const tr = document.createElement('tr');
-            row.forEach((cell, colIndex) => {
-                const td = document.createElement('td');
-                td.textContent = cell;
+        // Supprime d'abord les surlignages existants
+        tableBody.querySelectorAll('tr').forEach(row => {
+            row.style.backgroundColor = '';
+        });
 
-                if (selectedColumns[colIndex]) {
-                    td.style.backgroundColor = selectedColumns[colIndex];
-                }
-
-                tr.appendChild(td);
-            });
-            tableBody.appendChild(tr);
+        // Applique un surlignage jaune aux lignes dupliquées
+        duplicateIndexes.forEach(index => {
+            tableBody.querySelectorAll('tr')[index - 1].style.backgroundColor = 'yellow'; // -1 car le tableau commence à l'index 1
         });
     }
 
-    // Aller à la page suivante
-    function nextPage() {
-        currentPage++;
-        paginateTable();
-    }
-
-    // Revenir à la page précédente
-    function prevPage() {
-        if (currentPage > 1) {
-            currentPage--;
-        }
-        paginateTable();
-    }
-
-    // Impression du tableau avec les couleurs appliquées aux colonnes
-    function printTable() {
-        const printWindow = window.open('', '', 'height=600,width=800');
-        printWindow.document.write('<html><head><title>Impression du tableau</title>');
-        printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } table, th, td { border: 1px solid #ddd; } th, td { padding: 12px; text-align: left; } th { background-color: #4CAF50; color: white; } td { background-color: #f9f9f9; }</style>');
-        printWindow.document.write('</head><body>');
-
-        // Affichage des en-têtes
-        printWindow.document.write('<table><thead><tr>');
-        csvData[0].forEach(header => {
-            printWindow.document.write('<th>' + header + '</th>');
-        });
-        printWindow.document.write('</tr></thead><tbody>');
-
-        // Affichage des données avec couleurs
-        for (let i = 1; i < csvData.length; i++) {
-            printWindow.document.write('<tr>');
-            csvData[i].forEach((cell, colIndex) => {
-                let tdStyle = '';
-                if (selectedColumns[colIndex]) {
-                    tdStyle = `style="background-color:${selectedColumns[colIndex]}"`;
-                }
-                printWindow.document.write('<td ' + tdStyle + '>' + cell + '</td>');
-            });
-            printWindow.document.write('</tr>');
-        }
-        printWindow.document.write('</tbody></table>');
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-    }
-
-    // Exporter le tableau en HTML
-    function exportHTML() {
-        const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Export HTML</title>
-                <style>
-                    table { border-collapse: collapse; width: 100%; }
-                    table, th, td { border: 1px solid #ddd; }
-                    th, td { padding: 12px; text-align: left; }
-                    th { background-color: #4CAF50; color: white; }
-                    td { background-color: #f9f9f9; }
-                </style>
-            </head>
-            <body>
-                ${document.getElementById('csvTable').outerHTML}
-            </body>
-            </html>
-        `;
-
-        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'tableau.html';
-        link.click();
-        URL.revokeObjectURL(url);
-    }
-
-    // Populer le sélecteur de colonnes
-    function populateColumnSelector(numCols) {
-        const select = document.getElementById('columnSelector');
-        select.innerHTML = '<option value="-1">Aucune</option>';
-        for (let i = 0; i < numCols; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = `Colonne ${i + 1}`;
-            select.appendChild(option);
+    function mergeCells() {
+        const selectedColIndex = parseInt(document.getElementById('columnSelector').value);
+        if (selectedColIndex !== -1) {
+            const selectedRowIndex = 1; // Example row for merging
+            const cell1 = document.querySelector(`#csvBody tr:nth-child(${selectedRowIndex}) td:nth-child(${selectedColIndex})`);
+            const cell2 = document.querySelector(`#csvBody tr:nth-child(${selectedRowIndex + 1}) td:nth-child(${selectedColIndex})`);
+            if (cell1 && cell2) {
+                saveState();
+                cell1.colSpan = 2; // Merge cells
+                cell2.remove(); // Remove the second cell
+            }
         }
     }
 </script>
