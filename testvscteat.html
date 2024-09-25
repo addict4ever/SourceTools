@@ -15,13 +15,16 @@
         h1 {
             text-align: center;
             color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background-color: white;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
         }
         table {
             border-collapse: collapse;
@@ -32,7 +35,7 @@
             border: 1px solid #ddd;
         }
         th, td {
-            padding: 12px;
+            padding: 15px;
             text-align: left;
         }
         th {
@@ -49,11 +52,67 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        .format-button {
+            margin: 10px 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .format-button:hover {
+            background-color: #45a049;
+        }
+
+        @media (max-width: 600px) {
+            .format-button {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (min-width: 601px) {
+            .format-button {
+                font-size: 16px;
+                padding: 10px 15px;
+            }
+        }
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Espace entre les boutons */
+            align-items: center; /* Aligner les boutons verticalement */
+        }
+        .button-container button, 
+        .button-container input[type="file"], 
+        .button-container input[type="text"] {
+            margin: 5px;
+            padding: 10px;
+            font-size: 14px;
+            min-width: 100px; /* Largeur minimale pour les petits écrans */
+            flex-shrink: 0; /* Empêche les boutons de se réduire trop */
+        }
+        .button-container label {
+            margin-right: 10px;
+        }
+
+        /* Responsive pour petits écrans */
+        @media (max-width: 600px) {
+            .button-container {
+                flex-direction: column; /* Empile les boutons en colonne pour petits écrans */
+            }
+        }
         button {
             background-color: #4CAF50;
             color: white;
             cursor: pointer;
             transition: background-color 0.3s;
+            border: none;
+            font-size: 1.1em;
         }
         button:hover {
             background-color: #45a049;
@@ -65,25 +124,29 @@
             border-radius: 50%;
             margin: 0 5px;
             cursor: pointer;
+            transition: transform 0.2s;
         }
-        .color-red { background-color: #FF6347; } /* Rouge */
-        .color-blue { background-color: #1E90FF; } /* Bleu */
-        .color-green { background-color: #32CD32; } /* Vert */
-        .color-yellow { background-color: #FFD700; } /* Jaune */
-        .color-purple { background-color: #9370DB; } /* Violet */
-        .color-lightgray { background-color: #D3D3D3; } /* Gris clair */
-        .color-orange { background-color: #FFA500; } /* Orange */
-        .color-lightblue { background-color: #ADD8E6; } /* Bleu clair */
-        .color-pink { background-color: #FFC0CB; } /* Rose */
-        .color-teal { background-color: #008080; } /* Sarcelle */
-        .color-beige { background-color: #F5F5DC; } /* Beige */
-        .color-lightgreen { background-color: #90EE90; } /* Vert clair */
-        .color-salmon { background-color: #FA8072; } /* Saumon */
-        .color-lavender { background-color: #E6E6FA; } /* Lavande */
-        .color-mint { background-color: #98FF98; } /* Menthe */
-        .color-peach { background-color: #FFDAB9; } /* Pêche */
-        .color-skyblue { background-color: #87CEEB; } /* Bleu ciel */
-        .color-coral { background-color: #FF7F50; } /* Corail */
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+        .color-red { background-color: #FF6347; }
+        .color-blue { background-color: #1E90FF; }
+        .color-green { background-color: #32CD32; }
+        .color-yellow { background-color: #FFD700; }
+        .color-purple { background-color: #9370DB; }
+        .color-lightgray { background-color: #D3D3D3; }
+        .color-orange { background-color: #FFA500; }
+        .color-lightblue { background-color: #ADD8E6; }
+        .color-pink { background-color: #FFC0CB; }
+        .color-teal { background-color: #008080; }
+        .color-beige { background-color: #F5F5DC; }
+        .color-lightgreen { background-color: #90EE90; }
+        .color-salmon { background-color: #FA8072; }
+        .color-lavender { background-color: #E6E6FA; }
+        .color-mint { background-color: #98FF98; }
+        .color-peach { background-color: #FFDAB9; }
+        .color-skyblue { background-color: #87CEEB; }
+        .color-coral { background-color: #FF7F50; }
         .selected { border: 2px solid black; }
 
         .pagination {
@@ -112,19 +175,23 @@
 <body>
     <div class="container">
         <h1>Éditeur de fichiers CSV Avancé</h1>
-        <input type="file" id="csvFile" accept=".csv" />
-        <button onclick="addRow()">➕ Ajouter une ligne</button>
-        <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
-        <button onclick="deleteEmptyRows()">🧹 Supprimer lignes vides</button>
-        <button onclick="mergeCSV()">🔗 Fusionner CSV</button>
-        <button onclick="detectDuplicates()">🔍 Détecter les doublons</button>
-        <button onclick="exportCSV()">💾 Exporter CSV</button>
-        <button onclick="resetTable()">🔄 Réinitialiser le tableau</button>
-        <button onclick="printTable()">🖨️ Imprimer</button>
-        <button onclick="exportHTML()">📄 Exporter HTML</button>
-        <button onclick="mergeCells()">⚙️ Fusionner cellules</button>
-        <button onclick="undo()">↩️ Annuler</button>
-        <button onclick="redo()">↪️ Refaire</button>
+        <div class="button-container">
+            <input type="file" id="csvFile" accept=".csv" />
+            <button onclick="addRow()">➕ Ajouter une ligne</button>
+            <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
+            <button onclick="deleteEmptyRows()">🧹 Supprimer lignes vides</button>
+            <button onclick="mergeCSV()">🔗 Fusionner CSV</button>
+            <button onclick="detectDuplicates()">🔍 Détecter les doublons</button>
+            <button onclick="resetTable()">🔄 Réinitialiser le tableau</button>
+            <button onclick="printTable()">🖨️ Imprimer</button>
+            <button onclick="exportHTML()">📄 Exporter HTML</button>
+            <label for="fileNameInput">Nom du fichier CSV :</label>
+            <input type="text" id="fileNameInput" placeholder="Entrez le nom du fichier (sans extension)" />
+            <button onclick="exportCSV()">💾 Exporter CSV</button>
+            <button onclick="mergeCells()">⚙️ Fusionner cellules</button>
+            <button onclick="undo()">↩️ Annuler</button>
+            <button onclick="redo()">↪️ Refaire</button>
+        </div>
     </div>
 
     <br><br>
@@ -134,6 +201,9 @@
     <label for="replaceInput">Remplacer :</label>
     <input type="text" id="replaceInput" placeholder="Remplacer..." />
     <button onclick="replaceInTable()">Remplacer</button>
+    <label for="fillColumn">Remplir colonne avec :</label>
+    <input type="text" id="fillColumnValue" placeholder="Entrez une valeur" />
+    <button onclick="fillColumn()">Remplir</button>
 
     <br><br>
 
@@ -184,23 +254,34 @@
     <label for="fontSelector">Changer police :</label>
     <select id="fontSelector" onchange="changeFont()">
         <option value="Arial">Arial</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Helvetica">Helvetica</option>
         <option value="Times New Roman">Times New Roman</option>
-        <option value="Courier New">Courier New</option>
         <option value="Georgia">Georgia</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+        <option value="Impact">Impact</option>
+        <option value="Tahoma">Tahoma</option>
     </select>
 
-    <br><br>
-
-    <button onclick="boldText()">Mettre en Gras</button>
-    <button onclick="italicizeText()">Mettre en Italique</button>
-    <button onclick="underlineText()">Souligner</button>
 
     <br><br>
 
-    <label for="fillColumn">Remplir colonne avec :</label>
-    <input type="text" id="fillColumnValue" placeholder="Entrez une valeur" />
-    <button onclick="fillColumn()">Remplir</button>
+    <button class="format-button" onclick="boldText()">Mettre en Gras</button>
+    <button class="format-button" onclick="italicizeText()">Mettre en Italique</button>
+    <button class="format-button" onclick="underlineText()">Souligner</button>
+    <button class="format-button" onclick="changeTextColor()">Changer Couleur</button>
+    <button class="format-button" onclick="highlightText()">Surligner</button>
+    <button class="format-button" onclick="increaseFontSize()">Augmenter Taille</button>
+    <button class="format-button" onclick="decreaseFontSize()">Diminuer Taille</button>
+    <button class="format-button" onclick="resetFormatting()">Réinitialiser Formatage</button>
+
+
+    <br><br>
+    
 </div>
+
 
 <script>
     let csvData = [];
@@ -212,6 +293,8 @@
     let highlightedCells = new Set();
     let history = [];
     let redoStack = [];
+    let sortOrder = {}; // Objet pour stocker l'ordre de tri de chaque colonne
+
 
     document.getElementById('rowsPerPage').addEventListener('change', function() {
         rowsPerPage = parseInt(this.value);
@@ -233,14 +316,34 @@
     });
 
     function parseCSV(csv) {
-        const rows = csv.split('\n').map(row => row.split(','));
-        const metaRows = rows.filter(row => row.length <= 2);
-        const dataRows = rows.filter(row => row.length > 2);
+        // Détecte si le CSV utilise des virgules, des points-virgules ou des tabulations comme séparateur
+        const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+
+        // Divise le CSV en lignes et en colonnes selon le séparateur détecté
+        const rows = csv.split('\n').map(row => row.split(separator));
+
+        // Filtre les lignes vides ou mal formatées
+        const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
+
+        // Sépare les méta-lignes et les données si besoin (par exemple, des lignes avec moins de 2 colonnes)
+        const metaRows = filteredRows.filter(row => row.length <= 2);
+        const dataRows = filteredRows.filter(row => row.length > 2);
+
+        // Stocke les données et crée une copie originale
         csvData = metaRows.concat(dataRows);
         originalCsvData = JSON.parse(JSON.stringify(csvData));
+
+        // Affiche les données dans le tableau
         displayTable();
-        populateColumnSelector(dataRows[0].length);
+
+        // Remplit le sélecteur de colonnes pour les actions sur colonnes
+        if (dataRows.length > 0) {
+            populateColumnSelector(dataRows[0].length);
+        } else {
+            alert('Le fichier CSV semble vide ou mal formaté.');
+        }
     }
+
 
     function displayTable() {
         const tableHeader = document.getElementById('csvHeader');
@@ -251,39 +354,46 @@
 
         if (csvData.length > 0) {
             const headerRow = document.createElement('tr');
+            
+            // Parcourt les cellules de la première ligne (les en-têtes) pour les afficher et colorer
             csvData[0].forEach((cell, index) => {
                 const th = document.createElement('th');
                 th.textContent = cell;
-                th.onclick = () => sortTableByColumn(index);
+                th.style.backgroundColor = '#1E90FF'; // Appliquer la couleur bleue aux colonnes détectées
+                th.onclick = () => sortTableByColumn(index); // Tri par colonne lors d'un clic
                 headerRow.appendChild(th);
             });
+
             const thDelete = document.createElement('th');
             thDelete.textContent = 'Actions';
             headerRow.appendChild(thDelete);
             tableHeader.appendChild(headerRow);
+
+            // Affichage des lignes de données
+            for (let i = 1; i < csvData.length; i++) {
+                const row = document.createElement('tr');
+                csvData[i].forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.classList.add('editable');
+                    td.textContent = cell;
+                    row.appendChild(td);
+                });
+
+                const deleteButton = document.createElement('td');
+                deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
+                row.appendChild(deleteButton);
+                tableBody.appendChild(row);
+            }
+
+            paginateTable();
+        } else {
+            alert("Le fichier CSV est vide ou mal formaté.");
         }
-
-        for (let i = 1; i < csvData.length; i++) {
-            const row = document.createElement('tr');
-            csvData[i].forEach((cell, index) => {
-                const td = document.createElement('td');
-                td.contentEditable = true;
-                td.classList.add('editable');
-                td.textContent = cell;
-                if (selectedColumns[index]) {
-                    td.style.backgroundColor = selectedColumns[index];
-                }
-                row.appendChild(td);
-            });
-
-            const deleteButton = document.createElement('td');
-            deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
-            row.appendChild(deleteButton);
-            tableBody.appendChild(row);
-        }
-
-        paginateTable();
     }
+
+
+
 
     function addRow() {
         // Vérifie s'il existe au moins une ligne dans csvData pour connaître le nombre de colonnes
@@ -330,17 +440,43 @@
     }
 
     function exportCSV() {
-        let csvContent = csvData.map(e => e.join(",")).join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", "modified_file.csv");
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        try {
+            let fileName = document.getElementById('fileNameInput').value.trim();
+            
+            // Vérifie si le nom de fichier est vide
+            if (!fileName) {
+                alert("Veuillez spécifier un nom de fichier.");
+                return;  // Sort de la fonction si aucun nom n'est spécifié
+            }
+
+            // Créer le contenu CSV
+            let csvContent = csvData.map(e => e.join(",")).join("\n");
+            
+            // Vérifie s'il y a des données à exporter
+            if (csvData.length === 0 || !csvContent) {
+                alert("Aucune donnée à exporter.");
+                return; // Sort de la fonction s'il n'y a pas de données
+            }
+
+            // Crée le fichier Blob et déclenche le téléchargement
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${fileName}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert("Le fichier a été exporté avec succès !");
+        } catch (error) {
+            // Gestion des erreurs génériques
+            console.error("Erreur lors de l'exportation du fichier :", error);
+            alert("Une erreur est survenue lors de l'exportation. Veuillez réessayer.");
+        }
     }
+
 
     function resetTable() {
         saveState();
@@ -515,55 +651,172 @@
     }
 
     function exportHTML() {
-        let table = document.getElementById("csvTable");
-        let htmlContent = `
-            <!DOCTYPE html>
-            <html lang="fr">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Export HTML</title>
-                <style>
-                    table { border-collapse: collapse; width: 100%; }
-                    table, th, td { border: 1px solid #ddd; }
-                    th, td { padding: 12px; text-align: left; }
-                    th { background-color: #4CAF50; color: white; }
-                    td { background-color: #f9f9f9; }
-                </style>
-            </head>
-            <body>
-                ${table.outerHTML}
-            </body>
-            </html>
-        `;
+        try {
+            let fileName = document.getElementById('fileNameInput').value.trim();
+            
+            // Vérifie si le nom de fichier est vide
+            if (!fileName) {
+                alert("Veuillez spécifier un nom de fichier.");
+                return;  // Sort de la fonction si aucun nom n'est spécifié
+            }
 
-        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'tableau.html';
-        link.click();
-        URL.revokeObjectURL(url);
+            let table = document.getElementById("csvTable");
+
+            // Vérifie s'il y a des données dans le tableau
+            if (!table || table.rows.length === 0) {
+                alert("Aucune donnée à exporter.");
+                return;  // Sort de la fonction si le tableau est vide
+            }
+
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Export HTML</title>
+                    <style>
+                        table { border-collapse: collapse; width: 100%; }
+                        table, th, td { border: 1px solid #ddd; }
+                        th, td { padding: 12px; text-align: left; }
+                        th { background-color: #4CAF50; color: white; }
+                        td { background-color: #f9f9f9; }
+                    </style>
+                </head>
+                <body>
+                    ${table.outerHTML}
+                </body>
+                </html>
+            `;
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.html`;  // Utilise le nom spécifié par l'utilisateur
+            link.click();
+            URL.revokeObjectURL(url);
+
+            alert("Le fichier HTML a été exporté avec succès !");
+        } catch (error) {
+            // Gestion des erreurs génériques
+            console.error("Erreur lors de l'exportation du fichier HTML :", error);
+            alert("Une erreur est survenue lors de l'exportation. Veuillez réessayer.");
+        }
     }
 
+
     function deleteRow(rowIndex) {
-        saveState();
-        csvData.splice(rowIndex, 1);
-        displayTable();
+        // Demande une confirmation à l'utilisateur avant de supprimer
+        if (confirm("Êtes-vous sûr de vouloir supprimer cette ligne ?")) {
+            // Sauvegarde l'état actuel avant suppression pour pouvoir annuler
+            saveState();
+
+            // Supprime la ligne spécifiée
+            csvData.splice(rowIndex, 1);
+
+            // Met à jour l'affichage du tableau
+            displayTable();
+            
+            alert("Ligne supprimée avec succès.");
+        } else {
+            alert("La suppression a été annulée.");
+        }
     }
 
     function searchTable() {
         const searchInput = document.getElementById('searchInput').value.toLowerCase();
         const tableBody = document.getElementById('csvBody');
+        const searchTerms = parseSearchInput(searchInput); // Fonction pour séparer la recherche en termes
+
         tableBody.querySelectorAll('tr').forEach((row) => {
-            const found = Array.from(row.children).some((td) => td.textContent.toLowerCase().includes(searchInput));
+            let found = searchTerms.every(term => {
+                return Array.from(row.children).some((td) => {
+                    const cellText = removeAccents(td.textContent.toLowerCase());
+                    const searchText = removeAccents(term.toLowerCase());
+                    return searchText.startsWith('"') && searchText.endsWith('"')
+                        ? cellText === searchText.replace(/"/g, '') // Recherche exacte
+                        : cellText.includes(searchText); // Recherche approximative
+                });
+            });
+
             row.style.display = found ? '' : 'none';
+            if (found) {
+                highlightText(row, searchTerms); // Met en surbrillance les termes trouvés
+            } else {
+                removeHighlights(row); // Supprime les surbrillances si la ligne ne correspond pas
+            }
+        });
+    }
+
+    // Fonction pour gérer les termes de recherche multiples et exactes
+    function parseSearchInput(input) {
+        const regex = /"(.*?)"|\S+/g;
+        return input.match(regex) || [];
+    }
+
+    // Fonction pour supprimer les accents
+    function removeAccents(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function highlightText(row, searchTerms) {
+        row.querySelectorAll('td').forEach(td => {
+            searchTerms.forEach(term => {
+                const searchText = removeAccents(term.toLowerCase());
+                const originalText = td.innerHTML;
+                const regex = new RegExp(`(${searchText})`, 'gi');
+                td.innerHTML = originalText.replace(regex, match => `<span style="background-color: yellow;">${match}</span>`);
+            });
+        });
+    }
+
+    // Fonction pour supprimer les surbrillances
+    function removeHighlights(row) {
+        row.querySelectorAll('td').forEach(td => {
+            td.innerHTML = td.textContent; // Remet le texte brut sans balise HTML
         });
     }
 
     function sortTableByColumn(columnIndex) {
         saveState();
-        csvData.sort((a, b) => a[columnIndex].localeCompare(b[columnIndex]));
+
+        // Détection automatique du type de la colonne (nombre ou texte)
+        const isNumericColumn = csvData.slice(1).every(row => !isNaN(row[columnIndex]));
+
+        // Initialiser l'ordre de tri si non défini pour la colonne
+        if (!sortOrder.hasOwnProperty(columnIndex)) {
+            sortOrder[columnIndex] = 'asc'; // Le tri commence par ascendant par défaut
+        }
+
+        // Tri en fonction du type de données
+        csvData.sort((a, b) => {
+            let aVal = a[columnIndex];
+            let bVal = b[columnIndex];
+
+            // Gestion des valeurs nulles ou vides
+            if (!aVal) return 1;
+            if (!bVal) return -1;
+
+            if (isNumericColumn) {
+                aVal = parseFloat(aVal);
+                bVal = parseFloat(bVal);
+            } else {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+            }
+
+            // Tri ascendant ou descendant
+            if (sortOrder[columnIndex] === 'asc') {
+                return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+            } else {
+                return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+            }
+        });
+
+        // Inverser l'ordre de tri pour la prochaine fois
+        sortOrder[columnIndex] = sortOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
+
         displayTable();
     }
 
