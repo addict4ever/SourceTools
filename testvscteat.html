@@ -18,11 +18,100 @@
             font-size: 2.5em;
             margin-bottom: 20px;
         }
-        .container {
-            max-width: 1200px;
+        .top-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #a6dfa8;
+            padding: 10px 20px; /* Même padding que le container */
+            /*position: fixed;*/
+            top: 0;
+            width: calc(100% - 40px); /* Réduit la largeur totale en prenant en compte le padding des deux côtés */
             margin: 0 auto;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px; /* Ajoute des coins arrondis */
+        }
+        .top-bar button, 
+        .top-bar input[type="file"], 
+        .top-bar input[type="text"], 
+        .top-bar label {
+            margin: 5px;
+            padding: 10px;
+            font-size: 14px;
+            background-color: #fff;
+            border: none;
+            border-radius: 5px;
+            color: #333;
+        }
+        .top-bar button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        .top-bar button:hover {
+            background-color: #45a049;
+        }
+        .top-bar label {
+            color: white;
+            font-size: 14px;
+        }
+        .search-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-section, .options-section, .replace-section, .fill-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-section input, .replace-section input, .fill-section input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 180px;
+        }
+
+        .search-section select, .options-section input[type="checkbox"] {
+            margin-left: 5px;
+        }
+
+        .search-bar button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .search-bar button:hover {
+            background-color: #45a049;
+        }
+        
+        label {
+            font-weight: bold;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px; /* Adjusted to leave space for the top-bar */
+            padding: 20px;
+            margin-left: auto;
+            margin-right: auto;
             background-color: white;
-            padding: 30px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
             border-radius: 10px;
         }
@@ -68,6 +157,48 @@
             background-color: #45a049;
         }
 
+        .floating-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+            width: 250px;
+            justify-content: space-between;
+            cursor: move;
+            resize: none; /* Désactive le redimensionnement */
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #ff5c5c;
+            color: white;
+            padding: 5px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
         @media (max-width: 600px) {
             .format-button {
                 font-size: 14px;
@@ -170,12 +301,15 @@
                 top: 0;
             }
         }
+        .selected {
+            border: 2px solid #4CAF50;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Éditeur de fichiers CSV Avancé</h1>
-        <div class="button-container">
+    <div class="top-bar">
+        
+        <div>
             <input type="file" id="csvFile" accept=".csv" />
             <button onclick="addRow()">➕ Ajouter une ligne</button>
             <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
@@ -185,7 +319,6 @@
             <button onclick="resetTable()">🔄 Réinitialiser le tableau</button>
             <button onclick="printTable()">🖨️ Imprimer</button>
             <button onclick="exportHTML()">📄 Exporter HTML</button>
-            <label for="fileNameInput">Nom du fichier CSV :</label>
             <input type="text" id="fileNameInput" placeholder="Entrez le nom du fichier (sans extension)" />
             <button onclick="exportCSV()">💾 Exporter CSV</button>
             <button onclick="mergeCells()">⚙️ Fusionner cellules</button>
@@ -194,28 +327,57 @@
         </div>
     </div>
 
-    <br><br>
-
-    <label for="searchInput">Rechercher :</label>
-    <input type="text" id="searchInput" placeholder="Rechercher..." onkeyup="searchTable()">
-    <label for="replaceInput">Remplacer :</label>
-    <input type="text" id="replaceInput" placeholder="Remplacer..." />
-    <button onclick="replaceInTable()">Remplacer</button>
-    <label for="fillColumn">Remplir colonne avec :</label>
-    <input type="text" id="fillColumnValue" placeholder="Entrez une valeur" />
-    <button onclick="fillColumn()">Remplir</button>
-
-    <br><br>
+    <div class="container">
+        <div class="search-bar">
+            <div class="search-section">
+                <label for="searchInput">Rechercher :</label>
+                <input type="text" id="searchInput" placeholder="Rechercher..." onkeyup="searchTable()">
+                
+                <label for="searchColumn">Dans la colonne :</label>
+                <select id="searchColumn">
+                    <option value="-1">Toutes</option>
+                    <option value="0">Colonne 1</option>
+                    <option value="1">Colonne 2</option>
+                    <!-- Ajouter des options en fonction du nombre de colonnes -->
+                </select>
+            </div>
+    
+            <div class="options-section">
+                <label for="exactMatch">Recherche exacte :</label>
+                <input type="checkbox" id="exactMatch">
+    
+                <label for="useRegex">Utiliser regex :</label>
+                <input type="checkbox" id="useRegex">
+            </div>
+    
+            <div class="replace-section">
+                <label for="replaceInput">Remplacer :</label>
+                <input type="text" id="replaceInput" placeholder="Remplacer...">
+                <button onclick="replaceInTable()">Remplacer</button>
+            </div>
+    
+            <div class="fill-section">
+                <label for="fillColumn">Remplir colonne avec :</label>
+                <input type="text" id="fillColumnValue" placeholder="Entrez une valeur">
+                <button onclick="fillColumn()">Remplir</button>
+            </div>
+        </div>
+    </div>
 
     <label for="columnSelector">Sélectionner une colonne :</label>
     <select id="columnSelector">
         <option value="-1">Aucune</option>
     </select>
+    <label for="rowsPerPage">Lignes par page :</label>
+    <input type="number" id="rowsPerPage" value="20" min="1" max="100" />
 
     <br><br>
 
     <label>Couleur :</label>
-    <div id="colorPalette">
+    <button id="showColorPaletteBtn" onclick="showPalette()" style="display: none;">🎨 Couleur</button>
+
+    <div id="colorPalette" class="floating-bar">
+        <span class="close-btn" onclick="closePalette()">X</span>
         <div class="color-option color-red" onclick="selectTextColor('red')"></div>
         <div class="color-option color-blue" onclick="selectTextColor('blue')"></div>
         <div class="color-option color-green" onclick="selectTextColor('green')"></div>
@@ -236,10 +398,7 @@
         <div class="color-option color-coral" onclick="selectTextColor('coral')"></div>
     </div>
 
-    <br>
-
-    <label for="rowsPerPage">Lignes par page :</label>
-    <input type="number" id="rowsPerPage" value="20" min="1" max="100" />
+    
 
     <table id="csvTable">
         <thead id="csvHeader"></thead>
@@ -279,6 +438,15 @@
 
 
     <br><br>
+
+    <div id="contextMenu" style="display:none; position:absolute; background-color:#fff; border:1px solid #ccc; z-index:1000;">
+        <button onclick="applyActionToSelectedCells('backgroundColor', 'yellow')">Changer arrière-plan (Jaune)</button>
+        <button onclick="applyActionToSelectedCells('color', 'blue')">Changer couleur texte (Bleu)</button>
+        <button onclick="applyActionToSelectedCells('fontWeight', 'bold')">Mettre en Gras</button>
+        <button onclick="applyActionToSelectedCells('textDecoration', 'underline')">Souligner</button>
+        <button onclick="applyActionToSelectedCells('fontSize', '16px')">Augmenter Taille</button>
+    </div>
+    
     
 </div>
 
@@ -294,6 +462,7 @@
     let history = [];
     let redoStack = [];
     let sortOrder = {}; // Objet pour stocker l'ordre de tri de chaque colonne
+    let selectedCells = []; // Stocke les cellules sélectionnées
 
 
     document.getElementById('rowsPerPage').addEventListener('change', function() {
@@ -314,6 +483,33 @@
 
         reader.readAsText(file);
     });
+
+    document.querySelectorAll('#csvBody td').forEach(cell => {
+        cell.addEventListener('click', () => selectCell(cell));
+    });
+
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        const contextMenu = document.getElementById('contextMenu');
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.display = 'block';
+    });
+
+    document.addEventListener('click', function () {
+        const contextMenu = document.getElementById('contextMenu');
+        contextMenu.style.display = 'none'; // Cacher le menu contextuel
+    });
+
+    function colorColumn(colIndex, color) {
+        const rows = document.querySelectorAll('#csvBody tr');
+        rows.forEach(row => {
+            const cell = row.querySelectorAll('td')[colIndex];
+            if (cell) {
+                cell.style.backgroundColor = color;
+            }
+        });
+    }
 
     function parseCSV(csv) {
         // Détecte si le CSV utilise des virgules, des points-virgules ou des tabulations comme séparateur
@@ -423,6 +619,54 @@
         }
     }
 
+    dragElement(document.getElementById("colorPalette"));
+
+    function dragElement(elmnt) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        elmnt.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Obtenez la position initiale de la souris
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Calculez la nouvelle position du curseur
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Déplacez l'élément avec le curseur
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // Arrêtez le mouvement lorsque le bouton de la souris est relâché
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // Fonction pour fermer la palette
+    // Fonction pour fermer la palette
+    function closePalette() {
+        document.getElementById("colorPalette").style.display = "none";
+        document.getElementById("showColorPaletteBtn").style.display = "block"; // Affiche le bouton "Couleur" quand la palette est fermée
+    }
+
+    // Fonction pour afficher la palette
+    function showPalette() {
+        document.getElementById("colorPalette").style.display = "flex"; // Remet la palette visible
+        document.getElementById("showColorPaletteBtn").style.display = "none"; // Cache le bouton "Couleur"
+    }
     function deleteColumn() {
         const columnSelector = document.getElementById('columnSelector');
         const selectedColIndex = parseInt(columnSelector.value);
@@ -488,23 +732,75 @@
     }
 
     function saveState() {
-        history.push(JSON.parse(JSON.stringify(csvData)));
+        const state = {
+            data: JSON.parse(JSON.stringify(csvData)),  // Sauvegarde les données textuelles
+            styles: getTableStyles()  // Sauvegarde les styles des cellules
+        };
+        history.push(state);
         redoStack = [];
     }
 
+    // Fonction pour capturer les styles de toutes les cellules
+    function getTableStyles() {
+        const styles = [];
+        const rows = document.querySelectorAll('#csvBody tr');
+        rows.forEach((row) => {
+            const rowStyles = [];
+            row.querySelectorAll('td').forEach((cell) => {
+                rowStyles.push({
+                    backgroundColor: cell.style.backgroundColor,
+                    color: cell.style.color,
+                    fontSize: cell.style.fontSize,
+                    fontWeight: cell.style.fontWeight,
+                    textDecoration: cell.style.textDecoration
+                });
+            });
+            styles.push(rowStyles);
+        });
+        return styles;
+    }
+
+    // Fonction pour restaurer les styles des cellules
+    function applyTableStyles(styles) {
+        const rows = document.querySelectorAll('#csvBody tr');
+        styles.forEach((rowStyles, rowIndex) => {
+            const row = rows[rowIndex];
+            row.querySelectorAll('td').forEach((cell, cellIndex) => {
+                const style = rowStyles[cellIndex];
+                cell.style.backgroundColor = style.backgroundColor || '';
+                cell.style.color = style.color || '';
+                cell.style.fontSize = style.fontSize || '';
+                cell.style.fontWeight = style.fontWeight || '';
+                cell.style.textDecoration = style.textDecoration || '';
+            });
+        });
+    }
+
+    // Fonction pour annuler une action
     function undo() {
         if (history.length > 0) {
-            redoStack.push(JSON.parse(JSON.stringify(csvData)));
-            csvData = history.pop();
+            const lastState = history.pop();
+            redoStack.push({
+                data: JSON.parse(JSON.stringify(csvData)),
+                styles: getTableStyles()
+            });
+            csvData = lastState.data;
             displayTable();
+            applyTableStyles(lastState.styles);
         }
     }
 
+    // Fonction pour rétablir une action annulée
     function redo() {
         if (redoStack.length > 0) {
-            history.push(JSON.parse(JSON.stringify(csvData)));
-            csvData = redoStack.pop();
+            const nextState = redoStack.pop();
+            history.push({
+                data: JSON.parse(JSON.stringify(csvData)),
+                styles: getTableStyles()
+            });
+            csvData = nextState.data;
             displayTable();
+            applyTableStyles(nextState.styles);
         }
     }
 
@@ -668,6 +964,7 @@
                 return;  // Sort de la fonction si le tableau est vide
             }
 
+            // Crée une copie du tableau sans la colonne du bouton "Supprimer"
             let htmlContent = `
                 <!DOCTYPE html>
                 <html lang="fr">
@@ -684,11 +981,37 @@
                     </style>
                 </head>
                 <body>
-                    ${table.outerHTML}
-                </body>
-                </html>
-            `;
+                    <table>
+                        <thead>
+                            <tr>`;
 
+            // Exclure la dernière colonne de chaque en-tête (colonne "Supprimer")
+            const headerRow = table.querySelector("thead tr");
+            const thElements = headerRow.querySelectorAll("th");
+            thElements.forEach((th, index) => {
+                if (index < thElements.length - 1) { // Ignorer la dernière colonne (bouton supprimer)
+                    htmlContent += `<th>${th.textContent}</th>`;
+                }
+            });
+
+            htmlContent += `</tr></thead><tbody>`;
+
+            // Parcourir les lignes du corps du tableau, sans la colonne "Supprimer"
+            const rows = table.querySelectorAll("tbody tr");
+            rows.forEach(row => {
+                htmlContent += `<tr>`;
+                const tdElements = row.querySelectorAll("td");
+                tdElements.forEach((td, index) => {
+                    if (index < tdElements.length - 1) { // Ignorer la dernière colonne (bouton supprimer)
+                        htmlContent += `<td>${td.textContent}</td>`;
+                    }
+                });
+                htmlContent += `</tr>`;
+            });
+
+            htmlContent += `</tbody></table></body></html>`;
+
+            // Création du fichier HTML
             const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -704,7 +1027,6 @@
             alert("Une erreur est survenue lors de l'exportation. Veuillez réessayer.");
         }
     }
-
 
     function deleteRow(rowIndex) {
         // Demande une confirmation à l'utilisateur avant de supprimer
@@ -727,33 +1049,48 @@
     function searchTable() {
         const searchInput = document.getElementById('searchInput').value.toLowerCase();
         const tableBody = document.getElementById('csvBody');
-        const searchTerms = parseSearchInput(searchInput); // Fonction pour séparer la recherche en termes
+        const searchColumn = document.getElementById('searchColumn').value;
+        const exactMatch = document.getElementById('exactMatch').checked;
+        const useRegex = document.getElementById('useRegex').checked;
+
+        const searchTerms = parseSearchInput(searchInput, useRegex); // Parse the input for advanced terms
 
         tableBody.querySelectorAll('tr').forEach((row) => {
             let found = searchTerms.every(term => {
-                return Array.from(row.children).some((td) => {
-                    const cellText = removeAccents(td.textContent.toLowerCase());
-                    const searchText = removeAccents(term.toLowerCase());
-                    return searchText.startsWith('"') && searchText.endsWith('"')
-                        ? cellText === searchText.replace(/"/g, '') // Recherche exacte
-                        : cellText.includes(searchText); // Recherche approximative
+                const cells = searchColumn == -1 ? Array.from(row.children) : [row.children[searchColumn]];
+                return cells.some(td => {
+                    let cellText = removeAccents(td.textContent.toLowerCase());
+
+                    if (useRegex) {
+                        const regex = new RegExp(term, 'i'); // Case-insensitive regex
+                        return regex.test(cellText);
+                    } else if (exactMatch) {
+                        return cellText === term; // Exact match search
+                    } else {
+                        return cellText.includes(term); // Normal search
+                    }
                 });
             });
 
             row.style.display = found ? '' : 'none';
             if (found) {
-                highlightText(row, searchTerms); // Met en surbrillance les termes trouvés
+                highlightText(row, searchTerms);
             } else {
-                removeHighlights(row); // Supprime les surbrillances si la ligne ne correspond pas
+                removeHighlights(row);
             }
         });
     }
 
-    // Fonction pour gérer les termes de recherche multiples et exactes
-    function parseSearchInput(input) {
-        const regex = /"(.*?)"|\S+/g;
-        return input.match(regex) || [];
+    // Fonction modifiée pour prendre en charge les termes de recherche avancés
+    function parseSearchInput(input, useRegex) {
+        if (useRegex) {
+            return [input]; // Retourne l'expression entière comme un terme de recherche
+        } else {
+            const regex = /"(.*?)"|\S+/g;
+            return input.match(regex) || [];
+        }
     }
+
 
     // Fonction pour supprimer les accents
     function removeAccents(str) {
@@ -769,6 +1106,66 @@
                 td.innerHTML = originalText.replace(regex, match => `<span style="background-color: yellow;">${match}</span>`);
             });
         });
+    }
+
+    function selectCell(cell) {
+        // Si la cellule est déjà sélectionnée, on la dé-sélectionne
+        if (selectedCells.includes(cell)) {
+            cell.classList.remove('selected');
+            selectedCells = selectedCells.filter(selectedCell => selectedCell !== cell);
+        } else {
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+        }
+    }
+
+    function applyActionToSelectedCells(actionType, value) {
+        selectedCells.forEach(cell => {
+            switch(actionType) {
+                case 'backgroundColor':
+                    cell.style.backgroundColor = value;
+                    break;
+                case 'color':
+                    cell.style.color = value;
+                    break;
+                case 'fontWeight':
+                    cell.style.fontWeight = value;
+                    break;
+                case 'textDecoration':
+                    cell.style.textDecoration = value;
+                    break;
+                case 'fontSize':
+                    cell.style.fontSize = value;
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
+
+    function clearSelection() {
+        selectedCells.forEach(cell => cell.classList.remove('selected'));
+        selectedCells = [];
+    }
+
+    function applyStyle(style, value = null) {
+        if (selectedCell) {
+            switch (style) {
+                case 'bold':
+                    selectedCell.style.fontWeight = value || 'bold';
+                    break;
+                case 'underline':
+                    selectedCell.style.textDecoration = value || 'underline';
+                    break;
+                case 'color':
+                    selectedCell.style.color = value || 'black';
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            alert("Veuillez sélectionner une cellule avant d'appliquer un style.");
+        }
     }
 
     // Fonction pour supprimer les surbrillances
@@ -821,15 +1218,37 @@
     }
 
     function boldText() {
-        document.execCommand('bold');
+        applyActionToSelectedText('bold');
     }
 
     function italicizeText() {
-        document.execCommand('italic');
+        applyActionToSelectedText('italic');
     }
 
     function underlineText() {
-        document.execCommand('underline');
+        applyActionToSelectedText('underline');
+    }
+
+    function increaseFontSize() {
+        applyActionToSelectedText('fontSize', '5'); // '5' correspond à une taille de police plus grande
+    }
+
+    function decreaseFontSize() {
+        applyActionToSelectedText('fontSize', '1'); // '1' correspond à une taille de police plus petite
+    }
+
+    function resetFormatting() {
+        applyActionToSelectedText('removeFormat'); // Supprime tous les formats appliqués au texte sélectionné
+    }
+
+    // Fonction générique pour appliquer des actions au texte sélectionné
+    function applyActionToSelectedText(action, value = null) {
+        if (window.getSelection().rangeCount > 0) {
+            // Exécute la commande sur la sélection actuelle
+            document.execCommand(action, false, value);
+        } else {
+            alert("Veuillez sélectionner du texte avant d'appliquer une action.");
+        }
     }
 
     function fillColumn() {
