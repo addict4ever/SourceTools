@@ -69,25 +69,18 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-section, .options-section, .replace-section, .fill-section {
+        .container {
+            position: relative;
+        }
+
+        .floating-buttons {
             display: flex;
-            align-items: center;
             gap: 10px;
+            margin-bottom: 20px;
         }
 
-        .search-section input, .replace-section input, .fill-section input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 180px;
-        }
-
-        .search-section select, .options-section input[type="checkbox"] {
-            margin-left: 5px;
-        }
-
-        .search-bar button {
-            padding: 8px 15px;
+        .floating-buttons button {
+            padding: 10px;
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -96,14 +89,113 @@
             transition: background-color 0.3s ease;
         }
 
+        .floating-buttons button:hover {
+            background-color: #45a049;
+        }
+
+        .floating-bar {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            z-index: 1000;
+            display: none; /* Initially hidden */
+        }
+
+        .floating-bar .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff5c5c;
+            color: white;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            
+        }
+
+        .search-section, .options-section, .replace-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-section label, 
+        .options-section label, 
+        .replace-section label {
+            font-weight: bold;
+        }
+
+        .search-section input, 
+        .replace-section input, 
+        .search-section select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 800px) {
+            .floating-bar {
+                width: 100%;
+                left: 0;
+                right: 0;
+                bottom: 10px;
+            }
+        }
+        .options-section input[type="checkbox"] {
+            margin-left: 5px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            align-self: flex-end; /* Aligne les boutons à droite */
+        }
+
         .search-bar button:hover {
             background-color: #45a049;
         }
-        
-        label {
-            font-weight: bold;
+
+        @media (max-width: 800px) {
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .search-section, 
+            .options-section, 
+            .replace-section, 
+            .fill-section {
+                width: 100%;
+            }
         }
-        
+
         .container {
             display: flex;
             flex-wrap: wrap;
@@ -328,42 +420,77 @@
     </div>
 
     <div class="container">
-        <div class="search-bar">
+        <!-- Boutons pour afficher/masquer les sections flottantes -->
+        <div class="floating-buttons">
+            <button id="toggleSearchSection" onclick="toggleFloatingBar('searchSection')">🔍 Recherche</button>
+            <button id="toggleReplaceSection" onclick="toggleFloatingBar('replaceSection')">🔄 Remplacer</button>
+            <button id="toggleFillSection" onclick="toggleFloatingBar('fillSection')">⚙️ Remplir Colonne</button>
+            <button id="showColorPaletteBtn" onclick="showPalette()" style="display: none;">🎨 Couleur</button>
+        </div>
+        
+        <!-- Section Recherche Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="searchSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('searchSection')">X</span>
             <div class="search-section">
+                <h3>🔍 Recherche</h3>
                 <label for="searchInput">Rechercher :</label>
-                <input type="text" id="searchInput" placeholder="Rechercher..." onkeyup="searchTable()">
+                <input type="text" id="searchInput" placeholder="Texte à rechercher..." onkeyup="searchTable()">
                 
                 <label for="searchColumn">Dans la colonne :</label>
                 <select id="searchColumn">
-                    <option value="-1">Toutes</option>
-                    <option value="0">Colonne 1</option>
-                    <option value="1">Colonne 2</option>
-                    <!-- Ajouter des options en fonction du nombre de colonnes -->
+                    <option value="-1">Toutes les colonnes</option>
+                    <!-- Les options des colonnes seront générées dynamiquement -->
                 </select>
-            </div>
-    
-            <div class="options-section">
+                
                 <label for="exactMatch">Recherche exacte :</label>
                 <input type="checkbox" id="exactMatch">
-    
+                
                 <label for="useRegex">Utiliser regex :</label>
                 <input type="checkbox" id="useRegex">
+                
             </div>
+        </div>
     
+        <!-- Section Remplacer Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="replaceSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('replaceSection')">X</span>
             <div class="replace-section">
-                <label for="replaceInput">Remplacer :</label>
-                <input type="text" id="replaceInput" placeholder="Remplacer...">
+                <h3>🔄 Remplacer</h3>
+                <label for="searchReplaceInput">Rechercher :</label>
+                <input type="text" id="searchReplaceInput" placeholder="Texte à rechercher...">
+            
+                <label for="replaceInput">Remplacer par :</label>
+                <input type="text" id="replaceInput" placeholder="Texte de remplacement...">
+                
+                <label for="replaceColumn">Colonne :</label>
+                <select id="replaceColumn">
+                    <option value="-1">Toutes les colonnes</option>
+                    <!-- Les options des colonnes seront générées dynamiquement -->
+                </select>
+                
+                <label for="exactMatchReplace">Correspondance exacte :</label>
+                <input type="checkbox" id="exactMatchReplace">
+                
+                <label for="useRegexReplace">Utiliser Regex :</label>
+                <input type="checkbox" id="useRegexReplace">
+                
                 <button onclick="replaceInTable()">Remplacer</button>
             </div>
+        </div>
     
+        <!-- Section Remplir Colonne Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="fillSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('fillSection')">X</span>
             <div class="fill-section">
-                <label for="fillColumn">Remplir colonne avec :</label>
+                <h3>⚙️ Remplir Colonne</h3>
+                <label for="fillColumnValue">Remplir colonne avec :</label>
                 <input type="text" id="fillColumnValue" placeholder="Entrez une valeur">
+                
                 <button onclick="fillColumn()">Remplir</button>
             </div>
         </div>
     </div>
-
+    
     <label for="columnSelector">Sélectionner une colonne :</label>
     <select id="columnSelector">
         <option value="-1">Aucune</option>
@@ -373,8 +500,7 @@
 
     <br><br>
 
-    <label>Couleur :</label>
-    <button id="showColorPaletteBtn" onclick="showPalette()" style="display: none;">🎨 Couleur</button>
+    
 
     <div id="colorPalette" class="floating-bar">
         <span class="close-btn" onclick="closePalette()">X</span>
@@ -511,32 +637,34 @@
         });
     }
 
-    function parseCSV(csv) {
-        // Détecte si le CSV utilise des virgules, des points-virgules ou des tabulations comme séparateur
-        const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+    function showActionOptions() {
+        const action = document.getElementById('actionSelect').value;
+        
+        document.getElementById('searchSection').style.display = 'none';
+        document.getElementById('replaceSection').style.display = 'none';
+        document.getElementById('fillSection').style.display = 'none';
+        document.getElementById('showColorPaletteBtn').style.display = 'none';
+        
+        if (action === 'search') {
+            document.getElementById('searchSection').style.display = 'block';
+        } else if (action === 'replace') {
+            document.getElementById('replaceSection').style.display = 'block';
+        } else if (action === 'fill') {
+            document.getElementById('fillSection').style.display = 'block';
+        }
+    }
 
-        // Divise le CSV en lignes et en colonnes selon le séparateur détecté
-        const rows = csv.split('\n').map(row => row.split(separator));
 
-        // Filtre les lignes vides ou mal formatées
-        const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
-
-        // Sépare les méta-lignes et les données si besoin (par exemple, des lignes avec moins de 2 colonnes)
-        const metaRows = filteredRows.filter(row => row.length <= 2);
-        const dataRows = filteredRows.filter(row => row.length > 2);
-
-        // Stocke les données et crée une copie originale
-        csvData = metaRows.concat(dataRows);
-        originalCsvData = JSON.parse(JSON.stringify(csvData));
-
-        // Affiche les données dans le tableau
-        displayTable();
-
-        // Remplit le sélecteur de colonnes pour les actions sur colonnes
-        if (dataRows.length > 0) {
-            populateColumnSelector(dataRows[0].length);
-        } else {
-            alert('Le fichier CSV semble vide ou mal formaté.');
+    function populateColumnSelector(numCols) {
+        const columnSelector = document.getElementById('columnSelector');
+        columnSelector.innerHTML = '<option value="-1">Aucune</option>'; // Option par défaut "Aucune"
+        
+        // Ajouter les options dynamiquement pour chaque colonne
+        for (let i = 0; i < numCols; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Colonne ${i + 1}`;
+            columnSelector.appendChild(option);
         }
     }
 
@@ -655,6 +783,19 @@
         }
     }
 
+    function toggleFloatingBar(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section.style.display === 'none' || section.style.display === '') {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    function closeFloatingBar(sectionId) {
+        document.getElementById(sectionId).style.display = 'none';
+    }
+
     // Fonction pour fermer la palette
     // Fonction pour fermer la palette
     function closePalette() {
@@ -721,6 +862,26 @@
         }
     }
 
+    function parseCSV(csv) {
+        const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+        const rows = csv.split('\n').map(row => row.split(separator));
+
+        // Filtrer les lignes vides ou mal formatées
+        const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
+
+        // Stocker les données
+        csvData = filteredRows;
+
+        // Affiche les données dans le tableau
+        displayTable();
+
+        // Peupler le sélecteur de colonnes avec le nombre de colonnes de la première ligne de données
+        if (csvData.length > 0) {
+            populateColumnSelector(csvData[0].length);
+        } else {
+            alert('Le fichier CSV semble vide ou mal formaté.');
+        }
+    }
 
     function resetTable() {
         saveState();
@@ -1320,6 +1481,65 @@
                 cell1.colSpan = 2; // Merge cells
                 cell2.remove(); // Remove the second cell
             }
+        }
+    }
+    function replaceInTable() {
+        const searchValue = document.getElementById('searchInput').value.trim();
+        const replaceValue = document.getElementById('replaceInput').value.trim();
+        const searchColumn = parseInt(document.getElementById('searchColumn').value, 10);
+        const exactMatch = document.getElementById('exactMatch').checked;
+        const useRegex = document.getElementById('useRegex').checked;
+
+        if (!searchValue || !replaceValue) {
+            alert("Veuillez entrer une valeur de recherche et une valeur de remplacement.");
+            return;
+        }
+
+        let regex = null;
+        if (useRegex) {
+            try {
+                regex = new RegExp(searchValue, 'gi');
+            } catch (error) {
+                alert("Expression régulière invalide.");
+                return;
+            }
+        }
+
+        const tableBody = document.getElementById('csvBody');
+        let replacementsMade = 0;
+
+        tableBody.querySelectorAll('tr').forEach((row) => {
+            row.querySelectorAll('td').forEach((td, colIndex) => {
+                // Appliquer la recherche uniquement à la colonne sélectionnée (ou à toutes les colonnes si "Toutes" est sélectionnée)
+                if (searchColumn === -1 || colIndex === searchColumn) {
+                    const cellText = td.textContent;
+
+                    if (useRegex) {
+                        // Remplacer avec regex
+                        if (regex.test(cellText)) {
+                            td.innerHTML = cellText.replace(regex, replaceValue);
+                            replacementsMade++;
+                        }
+                    } else {
+                        // Recherche exacte ou partielle
+                        const searchPattern = exactMatch ? searchValue : searchValue.toLowerCase();
+                        const cellPattern = exactMatch ? cellText : cellText.toLowerCase();
+
+                        if (cellPattern.includes(searchPattern)) {
+                            td.innerHTML = exactMatch
+                                ? cellText.replace(searchValue, replaceValue)
+                                : cellText.replace(new RegExp(searchValue, 'gi'), replaceValue);
+                            replacementsMade++;
+                        }
+                    }
+                }
+            });
+        });
+
+        if (replacementsMade > 0) {
+            alert(`${replacementsMade} remplacements effectués.`);
+        } else {
+            alert("Aucun remplacement trouvé.");
         }
     }
 </script>
