@@ -105,7 +105,7 @@
             z-index: 1000;
             display: none; /* Initially hidden */
             resize: none; /* Désactive le redimensionnement */
-
+            overflow: hidden; /* Empêche les débordements lors des ajustements */
         }
 
         .floating-bar .close-btn {
@@ -430,7 +430,10 @@
             <button onclick="redo()">↪️ Refaire</button>
         </div>
     </div>
-
+    <div>
+        <label for="customHeaders">Spécifiez les en-têtes (séparés par des virgules) :</label>
+        <input type="text" id="customHeaders" placeholder="id,nom,prenom,email,pays,age">
+    </div>
     <div class="container">
         <!-- Boutons pour afficher/masquer les sections flottantes -->
         <div class="floating-buttons">
@@ -935,7 +938,12 @@
 
     // Vérifie si la ligne est un en-tête CSV valide en fonction des critères comme des noms de colonnes usuels
     function isValidHeader(row) {
-        const commonHeaders = ['id', 'nom', 'prenom', 'email', 'pays', 'age', 'date', 'telephone', 'adresse'];
+        // Récupérer les en-têtes personnalisés si fournis
+        const customHeadersInput = document.getElementById('customHeaders').value;
+        const commonHeaders = customHeadersInput
+            ? customHeadersInput.split(',').map(header => header.trim().toLowerCase())
+            : ['id', 'nom', 'prenom', 'email', 'pays', 'age', 'date', 'telephone', 'adresse'];
+
         return row.every(cell => {
             const lowerCaseCell = cell.trim().toLowerCase();
             return commonHeaders.includes(lowerCaseCell) || isLikelyHeader(cell);
