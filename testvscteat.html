@@ -104,6 +104,8 @@
             padding: 20px;
             z-index: 1000;
             display: none; /* Initially hidden */
+            resize: none; /* Désactive le redimensionnement */
+
         }
 
         .floating-bar .close-btn {
@@ -117,7 +119,7 @@
             border-radius: 50%;
             cursor: pointer;
             font-size: 12px;
-            
+            resize: none; /* Désactive le redimensionnement */
         }
 
         .search-section, .options-section, .replace-section {
@@ -396,6 +398,16 @@
         .selected {
             border: 2px solid #4CAF50;
         }
+        metadataSection {
+            margin-bottom: 20px;
+        }
+
+        #metadataDisplay {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -525,6 +537,10 @@
     </div>
 
     
+    <div id="metadataSection">
+        <h2>Métadonnées</h2>
+        <div id="metadataDisplay"></div>
+    </div>
 
     <table id="csvTable">
         <thead id="csvHeader"></thead>
@@ -864,23 +880,88 @@
 
     function parseCSV(csv) {
         const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+
         const rows = csv.split('\n').map(row => row.split(separator));
 
-        // Filtrer les lignes vides ou mal formatées
         const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
 
-        // Stocker les données
-        csvData = filteredRows;
+        const metaRows = [];
+        const dataRows = [];
+        let headerDetected = false;
 
-        // Affiche les données dans le tableau
-        displayTable();
+        for (let i = 0; i < filteredRows.length; i++) {
+            const row = filteredRows[i];
 
-        // Peupler le sélecteur de colonnes avec le nombre de colonnes de la première ligne de données
-        if (csvData.length > 0) {
-            populateColumnSelector(csvData[0].length);
+            // Vérifier si la ligne est structurée comme un CSV (plusieurs colonnes avec un séparateur cohérent)
+            if (isLikelyCSV(row)) {
+                // Si c'est le premier ensemble de colonnes structurées, nous considérons cela comme un en-tête potentiel
+                if (!headerDetected) {
+                    if (isValidHeader(row)) {
+                        headerDetected = true;
+                        dataRows.push(row); // Ajouter les en-têtes
+                    } else {
+                        metaRows.push(row.join(separator)); // Si ce n'est pas un en-tête valide, traiter comme métadonnée
+                    }
+                } else {
+                    // Ajouter les lignes suivantes en tant que données
+                    dataRows.push(row);
+                }
+            } else {
+                // Ajouter les lignes non structurées comme des métadonnées
+                metaRows.push(row.join(separator));
+            }
+        }
+
+        // Affiche les métadonnées détectées
+        displayMetadata(metaRows);
+
+        // Stocke les données CSV structurées
+        csvData = dataRows;
+        originalCsvData = JSON.parse(JSON.stringify(dataRows));
+
+        if (dataRows.length > 0) {
+            displayTable();
+            populateColumnSelector(dataRows[0].length);
         } else {
             alert('Le fichier CSV semble vide ou mal formaté.');
         }
+    }
+
+    // Fonction pour détecter si une ligne est probablement une ligne de données CSV structurées
+    function isLikelyCSV(row) {
+        // Si la ligne contient plusieurs colonnes (plus de 1 cellule non vide) et que les longueurs des cellules sont relativement similaires, on la considère comme CSV
+        return row.length > 1 && row.every(cell => cell.trim() !== '');
+    }
+
+    // Vérifie si la ligne est un en-tête CSV valide en fonction des critères comme des noms de colonnes usuels
+    function isValidHeader(row) {
+        const commonHeaders = ['id', 'nom', 'prenom', 'email', 'pays', 'age', 'date', 'telephone', 'adresse'];
+        return row.every(cell => {
+            const lowerCaseCell = cell.trim().toLowerCase();
+            return commonHeaders.includes(lowerCaseCell) || isLikelyHeader(cell);
+        });
+    }
+
+    // Détecte si une cellule ressemble à un en-tête probable (majuscule, mot unique, etc.)
+    function isLikelyHeader(cell) {
+        const trimmedCell = cell.trim();
+        return /^[A-Z][a-zA-Z]+$/.test(trimmedCell) || trimmedCell.length <= 20;
+    }
+
+    function displayMetadata(metaRows) {
+        const metadataDisplay = document.getElementById('metadataDisplay');
+        metadataDisplay.innerHTML = '';
+
+        metaRows.forEach(row => {
+            const p = document.createElement('p');
+            // Vérifiez si la ligne est un tableau, sinon affichez directement la ligne
+            if (Array.isArray(row)) {
+                p.textContent = row.join(' '); // Joindre les cellules de la ligne de métadonnées en une seule chaîne
+            } else {
+                p.textContent = row; // Afficher la ligne telle quelle si ce n'est pas un tableau
+            }
+            metadataDisplay.appendChild(p);
+        });
     }
 
     function resetTable() {
