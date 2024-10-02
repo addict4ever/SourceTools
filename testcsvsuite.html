@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Éditeur CSV avec Options Avancées</title>
+    <style>
+        /* Ajoutez ici votre CSS personnalisé, que vous avez déjà dans votre code */
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div>
+            <input type="file" id="csvFile" accept=".csv" />
+            <button onclick="addRow()">➕ Ajouter une ligne</button>
+            <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
+            <!-- Autres boutons ici -->
+        </div>
+    </div>
+
+    <!-- Toggle pour passer entre Vue Brute et Vue Tableau -->
+    <div>
+        <label for="toggle-view">Afficher comme :</label>
+        <input type="checkbox" id="toggle-view" />
+        <span id="view-mode-label">Tableur</span>
+    </div>
+
+    <!-- Section pour le tableau CSV -->
+    <table id="csvTable">
+        <thead id="csvHeader"></thead>
+        <tbody id="csvBody"></tbody>
+    </table>
+
+    <!-- Section pour l'affichage en texte brut -->
+    <div id="csvTextView" style="display:none;"></div>
+
+    <script>
+        let csvData = [];
+        let originalCsvData = [];
+        let currentPage = 1;
+        let rowsPerPage = 20;
+
+        document.getElementById('csvFile').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const csvContent = event.target.result;
+                parseCSV(csvContent);
+            };
+
+            reader.readAsText(file);
+        });
+
+        // Gestion de l'affichage brut ou en tableau
+        document.getElementById('toggle-view').addEventListener('change', function () {
+            if (this.checked) {
+                // Mode Vue Brute (Texte)
+                document.getElementById('csvTable').style.display = 'none';
+                document.getElementById('csvTextView').style.display = 'block';
+                document.getElementById('view-mode-label').textContent = 'Texte';
+                displayRawCSV();  // Affiche le CSV brut
+            } else {
+                // Mode Tableau
+                document.getElementById('csvTable').style.display = 'table';
+                document.getElementById('csvTextView').style.display = 'none';
+                document.getElementById('view-mode-label').textContent = 'Tableur';
+                displayTable();  // Affiche le tableau
+            }
+        });
+
+        function parseCSV(csvContent) {
+            const separator = csvContent.includes(';') ? ';' : csvContent.includes('\t') ? '\t' : ',';
+
+            // Divise le contenu CSV en lignes
+            const rows = csvContent.split('\n').map(row => row.split(separator));
+
+            // Filtre les lignes vides
+            const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
+
+            csvData = filteredRows;
+            originalCsvData = JSON.parse(JSON.stringify(filteredRows));
+
+            if (document.getElementById('toggle-view').checked) {
+                displayRawCSV();  // Mode brut
+            } else {
+                displayTable();  // Mode tableau
+            }
+        }
+
+        function displayRawCSV() {
+            const csvTextView = document.getElementById('csvTextView');
+            csvTextView.innerHTML = ''; // Réinitialise le contenu
+            csvTextView.style.whiteSpace = "pre-wrap"; // Conserve les sauts de ligne
+
+            // Génère le texte brut à partir de `csvData`
+            const rawText = csvData.map(row => row.join(',')).join('\n');
+            csvTextView.textContent = rawText; // Affiche le texte brut
+        }
+
+        function displayTable() {
+            const tableHeader = document.getElementById('csvHeader');
+            const tableBody = document.getElementById('csvBody');
+
+            tableHeader.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (csvData.length > 0) {
+                // Création de l'en-tête du tableau
+                const headerRow = document.createElement('tr');
+                csvData[0].forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                tableHeader.appendChild(headerRow);
+
+                // Création des lignes de données
+                for (let i = 1; i < csvData.length; i++) {
+                    const row = document.createElement('tr');
+                    csvData[i].forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        row.appendChild(td);
+                    });
+                    tableBody.appendChild(row);
+                }
+            } else {
+                alert("Le fichier CSV semble vide ou mal formaté.");
+            }
+        }
+    </script>
+</body>
+</html>
