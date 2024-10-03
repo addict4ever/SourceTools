@@ -5,130 +5,1723 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur CSV avec Options Avancées</title>
     <style>
-        /* Ajoutez ici votre CSS personnalisé, que vous avez déjà dans votre code */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .top-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #a6dfa8;
+            padding: 10px 20px; /* Même padding que le container */
+            /*position: fixed;*/
+            top: 0;
+            width: calc(100% - 40px); /* Réduit la largeur totale en prenant en compte le padding des deux côtés */
+            margin: 0 auto;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px; /* Ajoute des coins arrondis */
+        }
+        .top-bar button, 
+        .top-bar input[type="file"], 
+        .top-bar input[type="text"], 
+        .top-bar label {
+            margin: 5px;
+            padding: 10px;
+            font-size: 14px;
+            background-color: #fff;
+            border: none;
+            border-radius: 5px;
+            color: #333;
+        }
+        .top-bar button {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        .top-bar button:hover {
+            background-color: #45a049;
+        }
+        .top-bar label {
+            color: white;
+            font-size: 14px;
+        }
+        .search-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            position: relative;
+        }
+
+        .floating-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .floating-buttons button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .floating-buttons button:hover {
+            background-color: #45a049;
+        }
+
+        .floating-bar {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            z-index: 1000;
+            display: none; /* Initially hidden */
+            resize: none; /* Désactive le redimensionnement */
+            overflow: hidden; /* Empêche les débordements lors des ajustements */
+        }
+
+        .floating-bar .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff5c5c;
+            color: white;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            resize: none; /* Désactive le redimensionnement */
+        }
+
+        .search-section, .options-section, .replace-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-section label, 
+        .options-section label, 
+        .replace-section label {
+            font-weight: bold;
+        }
+
+        .search-section input, 
+        .replace-section input, 
+        .search-section select {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 800px) {
+            .floating-bar {
+                width: 100%;
+                left: 0;
+                right: 0;
+                bottom: 10px;
+            }
+        }
+        .options-section input[type="checkbox"] {
+            margin-left: 5px;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            align-self: flex-end; /* Aligne les boutons à droite */
+        }
+
+        .search-bar button:hover {
+            background-color: #45a049;
+        }
+
+        @media (max-width: 800px) {
+            .search-bar {
+                flex-direction: column;
+            }
+
+            .search-section, 
+            .options-section, 
+            .replace-section, 
+            .fill-section {
+                width: 100%;
+            }
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 20px; /* Adjusted to leave space for the top-bar */
+            padding: 20px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        td.editable {
+            background-color: #f9f9f9;
+        }
+        input[type="file"], input[type="text"], select, button {
+            margin: 10px 5px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .format-button {
+            margin: 10px 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .format-button:hover {
+            background-color: #45a049;
+        }
+
+        .floating-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: flex;
+            flex-wrap: wrap;
+            width: 250px;
+            justify-content: space-between;
+            cursor: move;
+            resize: none; /* Désactive le redimensionnement */
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #ff5c5c;
+            color: white;
+            padding: 5px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+        @media (max-width: 600px) {
+            .format-button {
+                font-size: 14px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (min-width: 601px) {
+            .format-button {
+                font-size: 16px;
+                padding: 10px 15px;
+            }
+        }
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Espace entre les boutons */
+            align-items: center; /* Aligner les boutons verticalement */
+        }
+        .button-container button, 
+        .button-container input[type="file"], 
+        .button-container input[type="text"] {
+            margin: 5px;
+            padding: 10px;
+            font-size: 14px;
+            min-width: 100px; /* Largeur minimale pour les petits écrans */
+            flex-shrink: 0; /* Empêche les boutons de se réduire trop */
+        }
+        .button-container label {
+            margin-right: 10px;
+        }
+
+        /* Responsive pour petits écrans */
+        @media (max-width: 600px) {
+            .button-container {
+                flex-direction: column; /* Empile les boutons en colonne pour petits écrans */
+            }
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            border: none;
+            font-size: 1.1em;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .color-option {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin: 0 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+        .color-red { background-color: #FF6347; }
+        .color-blue { background-color: #1E90FF; }
+        .color-green { background-color: #32CD32; }
+        .color-yellow { background-color: #FFD700; }
+        .color-purple { background-color: #9370DB; }
+        .color-lightgray { background-color: #D3D3D3; }
+        .color-orange { background-color: #FFA500; }
+        .color-lightblue { background-color: #ADD8E6; }
+        .color-pink { background-color: #FFC0CB; }
+        .color-teal { background-color: #008080; }
+        .color-beige { background-color: #F5F5DC; }
+        .color-lightgreen { background-color: #90EE90; }
+        .color-salmon { background-color: #FA8072; }
+        .color-lavender { background-color: #E6E6FA; }
+        .color-mint { background-color: #98FF98; }
+        .color-peach { background-color: #FFDAB9; }
+        .color-skyblue { background-color: #87CEEB; }
+        .color-coral { background-color: #FF7F50; }
+        .selected { border: 2px solid black; }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination button {
+            margin: 0 5px;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #csvTable, #csvTable * {
+                visibility: visible;
+            }
+            #csvTable {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+        .selected {
+            border: 2px solid #4CAF50;
+        }
+        metadataSection {
+            margin-bottom: 20px;
+        }
+
+        #metadataDisplay {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .view-toggle-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Styles pour le label "Afficher comme" */
+        .toggle-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-right: 10px;
+        }
+
+        /* Style pour le checkbox */
+        .toggle-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        /* Style pour le mode d'affichage ("Tableur") */
+        .view-mode-label {
+            font-size: 16px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .csv-text-view {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            margin: 20px; /* Espacement autour du conteneur */
+        }
+
+        #csvTextArea {
+            width: 100%; /* Prend toute la largeur disponible */
+            height: 500px; /* Hauteur par défaut, ajustable */
+            resize: vertical; /* Permet à l'utilisateur de redimensionner verticalement */
+            padding: 10px; /* Espacement intérieur */
+            font-size: 16px; /* Taille de police */
+            border: 1px solid #ccc; /* Bordure légère */
+            border-radius: 4px; /* Coins arrondis */
+        }
+
     </style>
 </head>
 <body>
     <div class="top-bar">
+        
         <div>
             <input type="file" id="csvFile" accept=".csv" />
             <button onclick="addRow()">➕ Ajouter une ligne</button>
             <button onclick="deleteColumn()">🗑️ Supprimer colonne</button>
-            <!-- Autres boutons ici -->
+            <button onclick="deleteEmptyRows()">🧹 Supprimer lignes vides</button>
+            <button onclick="mergeCSV()">🔗 Fusionner CSV</button>
+            <button onclick="detectDuplicates()">🔍 Détecter les doublons</button>
+            <button onclick="resetTable()">🔄 Réinitialiser le tableau</button>
+            <button onclick="printTable()">🖨️ Imprimer</button>
+            <button onclick="exportHTML()">📄 Exporter HTML</button>
+            <input type="text" id="fileNameInput" placeholder="Entrez le nom du fichier (sans extension)" />
+            <button onclick="exportCSV()">💾 Exporter CSV</button>
+            <button onclick="mergeCells()">⚙️ Fusionner cellules</button>
+            <button onclick="undo()">↩️ Annuler</button>
+            <button onclick="redo()">↪️ Refaire</button>
         </div>
     </div>
-
-    <!-- Toggle pour passer entre Vue Brute et Vue Tableau -->
     <div>
-        <label for="toggle-view">Afficher comme :</label>
-        <input type="checkbox" id="toggle-view" />
-        <span id="view-mode-label">Tableur</span>
+        <label for="customHeaders">Spécifiez les en-têtes (séparés par des virgules) :</label>
+        <input type="text" id="customHeaders" placeholder="id,nom,prenom,email,pays,age">
+    </div>
+    <div class="view-toggle-container"></div>
+        <label for="toggle-view" class="toggle-label">Afficher comme :</label>
+        <input type="checkbox" id="toggle-view" class="toggle-checkbox" />
+        <span id="view-mode-label" class="view-mode-label">Tableur</span>
+    </div>
+    <div class="container">
+        <!-- Boutons pour afficher/masquer les sections flottantes -->
+        <div class="floating-buttons">
+            <button id="toggleSearchSection" onclick="toggleFloatingBar('searchSection')">🔍 Recherche</button>
+            <button id="toggleReplaceSection" onclick="toggleFloatingBar('replaceSection')">🔄 Remplacer</button>
+            <button id="toggleFillSection" onclick="toggleFloatingBar('fillSection')">⚙️ Remplir Colonne</button>
+            <button id="showColorPaletteBtn" onclick="showPalette()" style="display: none;">🎨 Couleur</button>
+        </div>
+        
+        <!-- Section Recherche Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="searchSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('searchSection')">X</span>
+            <div class="search-section">
+                <h3>🔍 Recherche</h3>
+                <label for="searchInput">Rechercher :</label>
+                <input type="text" id="searchInput" placeholder="Texte à rechercher..." onkeyup="searchTable()">
+                
+                <label for="searchColumn">Dans la colonne :</label>
+                <select id="searchColumn">
+                    <option value="-1">Toutes les colonnes</option>
+                    <!-- Les options des colonnes seront générées dynamiquement -->
+                </select>
+                
+                <label for="exactMatch">Recherche exacte :</label>
+                <input type="checkbox" id="exactMatch">
+                
+                <label for="useRegex">Utiliser regex :</label>
+                <input type="checkbox" id="useRegex">
+                
+            </div>
+        </div>
+    
+        <!-- Section Remplacer Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="replaceSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('replaceSection')">X</span>
+            <div class="replace-section">
+                <h3>🔄 Remplacer</h3>
+                <label for="searchReplaceInput">Rechercher :</label>
+                <input type="text" id="searchReplaceInput" placeholder="Texte à rechercher...">
+            
+                <label for="replaceInput">Remplacer par :</label>
+                <input type="text" id="replaceInput" placeholder="Texte de remplacement...">
+                
+                <label for="replaceColumn">Colonne :</label>
+                <select id="replaceColumn">
+                    <option value="-1">Toutes les colonnes</option>
+                    <!-- Les options des colonnes seront générées dynamiquement -->
+                </select>
+                
+                <label for="exactMatchReplace">Correspondance exacte :</label>
+                <input type="checkbox" id="exactMatchReplace">
+                
+                <label for="useRegexReplace">Utiliser Regex :</label>
+                <input type="checkbox" id="useRegexReplace">
+                
+                <button onclick="replaceInTable()">Remplacer</button>
+            </div>
+        </div>
+    
+        <!-- Section Remplir Colonne Flottante (cachée par défaut) -->
+        <div class="floating-bar" id="fillSection" style="display: none;">
+            <span class="close-btn" onclick="closeFloatingBar('fillSection')">X</span>
+            <div class="fill-section">
+                <h3>⚙️ Remplir Colonne</h3>
+                <label for="fillColumnValue">Remplir colonne avec :</label>
+                <input type="text" id="fillColumnValue" placeholder="Entrez une valeur">
+                
+                <button onclick="fillColumn()">Remplir</button>
+            </div>
+        </div>
+    </div>
+    
+    <label for="columnSelector">Sélectionner une colonne :</label>
+    <select id="columnSelector">
+        <option value="-1">Aucune</option>
+    </select>
+    <label for="rowsPerPage">Lignes par page :</label>
+    <input type="number" id="rowsPerPage" value="20" min="1" max="100" />
+
+    <br><br>
+
+    
+
+    <div id="colorPalette" class="floating-bar">
+        <span class="close-btn" onclick="closePalette()">X</span>
+        <div class="color-option color-red" onclick="selectTextColor('red')"></div>
+        <div class="color-option color-blue" onclick="selectTextColor('blue')"></div>
+        <div class="color-option color-green" onclick="selectTextColor('green')"></div>
+        <div class="color-option color-yellow" onclick="selectTextColor('yellow')"></div>
+        <div class="color-option color-purple" onclick="selectTextColor('purple')"></div>
+        <div class="color-option color-lightgray" onclick="selectTextColor('lightgray')"></div>
+        <div class="color-option color-orange" onclick="selectTextColor('orange')"></div>
+        <div class="color-option color-lightblue" onclick="selectTextColor('lightblue')"></div>
+        <div class="color-option color-pink" onclick="selectTextColor('pink')"></div>
+        <div class="color-option color-teal" onclick="selectTextColor('teal')"></div>
+        <div class="color-option color-beige" onclick="selectTextColor('beige')"></div>
+        <div class="color-option color-lightgreen" onclick="selectTextColor('lightgreen')"></div>
+        <div class="color-option color-salmon" onclick="selectTextColor('salmon')"></div>
+        <div class="color-option color-lavender" onclick="selectTextColor('lavender')"></div>
+        <div class="color-option color-mint" onclick="selectTextColor('mint')"></div>
+        <div class="color-option color-peach" onclick="selectTextColor('peach')"></div>
+        <div class="color-option color-skyblue" onclick="selectTextColor('skyblue')"></div>
+        <div class="color-option color-coral" onclick="selectTextColor('coral')"></div>
     </div>
 
-    <!-- Section pour le tableau CSV -->
+    
+    <div id="metadataSection">
+        <h2>Métadonnées</h2>
+        <div id="metadataDisplay"></div>
+    </div>
+
     <table id="csvTable">
         <thead id="csvHeader"></thead>
         <tbody id="csvBody"></tbody>
     </table>
 
-    <!-- Section pour l'affichage en texte brut -->
-    <div id="csvTextView" style="display:none;"></div>
+    <div class="pagination">
+        <button onclick="prevPage()">Précédent</button>
+        <button onclick="nextPage()">Suivant</button>
+    </div>
 
-    <script>
-        let csvData = [];
-        let originalCsvData = [];
-        let currentPage = 1;
-        let rowsPerPage = 20;
+    <label for="fontSelector">Changer police :</label>
+    <select id="fontSelector" onchange="changeFont()">
+        <option value="Arial">Arial</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Trebuchet MS">Trebuchet MS</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+        <option value="Impact">Impact</option>
+        <option value="Tahoma">Tahoma</option>
+    </select>
 
-        document.getElementById('csvFile').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
 
-            reader.onload = function (event) {
-                const csvContent = event.target.result;
-                parseCSV(csvContent);
-            };
+    <br><br>
 
-            reader.readAsText(file);
-        });
+    <button class="format-button" onclick="boldText()">Mettre en Gras</button>
+    <button class="format-button" onclick="italicizeText()">Mettre en Italique</button>
+    <button class="format-button" onclick="underlineText()">Souligner</button>
+    <button class="format-button" onclick="changeTextColor()">Changer Couleur</button>
+    <button class="format-button" onclick="highlightText()">Surligner</button>
+    <button class="format-button" onclick="increaseFontSize()">Augmenter Taille</button>
+    <button class="format-button" onclick="decreaseFontSize()">Diminuer Taille</button>
+    <button class="format-button" onclick="resetFormatting()">Réinitialiser Formatage</button>
 
-        // Gestion de l'affichage brut ou en tableau
-        document.getElementById('toggle-view').addEventListener('change', function () {
-            if (this.checked) {
-                // Mode Vue Brute (Texte)
-                document.getElementById('csvTable').style.display = 'none';
-                document.getElementById('csvTextView').style.display = 'block';
-                document.getElementById('view-mode-label').textContent = 'Texte';
-                displayRawCSV();  // Affiche le CSV brut
-            } else {
-                // Mode Tableau
-                document.getElementById('csvTable').style.display = 'table';
-                document.getElementById('csvTextView').style.display = 'none';
-                document.getElementById('view-mode-label').textContent = 'Tableur';
-                displayTable();  // Affiche le tableau
+
+    <br><br>
+
+    <div id="contextMenu" style="display:none; position:absolute; background-color:#fff; border:1px solid #ccc; z-index:1000;">
+        <button onclick="applyActionToSelectedCells('backgroundColor', 'yellow')">Changer arrière-plan (Jaune)</button>
+        <button onclick="applyActionToSelectedCells('color', 'blue')">Changer couleur texte (Bleu)</button>
+        <button onclick="applyActionToSelectedCells('fontWeight', 'bold')">Mettre en Gras</button>
+        <button onclick="applyActionToSelectedCells('textDecoration', 'underline')">Souligner</button>
+        <button onclick="applyActionToSelectedCells('fontSize', '16px')">Augmenter Taille</button>
+    </div>
+    
+    
+</div>
+
+
+<script>
+    let csvData = [];
+    let originalCsvData = [];
+    let selectedColumns = {};
+    let currentPage = 1;
+    let rowsPerPage = 20;
+    let rowsToPrint = 20;
+    let highlightedCells = new Set();
+    let history = [];
+    let redoStack = [];
+    let sortOrder = {}; // Objet pour stocker l'ordre de tri de chaque colonne
+    let selectedCells = []; // Stocke les cellules sélectionnées
+
+
+    document.getElementById('rowsPerPage').addEventListener('change', function() {
+        rowsPerPage = parseInt(this.value);
+        rowsToPrint = parseInt(this.value);
+        currentPage = 1;
+        paginateTable();
+    });
+
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+            const csv = event.target.result;
+            parseCSV(csv);
+        };
+
+        reader.readAsText(file);
+    });
+
+    document.querySelectorAll('#csvBody td').forEach(cell => {
+        cell.addEventListener('click', () => selectCell(cell));
+    });
+
+    document.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        const contextMenu = document.getElementById('contextMenu');
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.style.display = 'block';
+    });
+
+    document.addEventListener('click', function () {
+        const contextMenu = document.getElementById('contextMenu');
+        contextMenu.style.display = 'none'; // Cacher le menu contextuel
+    });
+
+    function colorColumn(colIndex, color) {
+        const rows = document.querySelectorAll('#csvBody tr');
+        rows.forEach(row => {
+            const cell = row.querySelectorAll('td')[colIndex];
+            if (cell) {
+                cell.style.backgroundColor = color;
             }
         });
+    }
 
-        function parseCSV(csvContent) {
-            const separator = csvContent.includes(';') ? ';' : csvContent.includes('\t') ? '\t' : ',';
-
-            // Divise le contenu CSV en lignes
-            const rows = csvContent.split('\n').map(row => row.split(separator));
-
-            // Filtre les lignes vides
-            const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
-
-            csvData = filteredRows;
-            originalCsvData = JSON.parse(JSON.stringify(filteredRows));
-
-            if (document.getElementById('toggle-view').checked) {
-                displayRawCSV();  // Mode brut
-            } else {
-                displayTable();  // Mode tableau
-            }
+    function showActionOptions() {
+        const action = document.getElementById('actionSelect').value;
+        
+        document.getElementById('searchSection').style.display = 'none';
+        document.getElementById('replaceSection').style.display = 'none';
+        document.getElementById('fillSection').style.display = 'none';
+        document.getElementById('showColorPaletteBtn').style.display = 'none';
+        
+        if (action === 'search') {
+            document.getElementById('searchSection').style.display = 'block';
+        } else if (action === 'replace') {
+            document.getElementById('replaceSection').style.display = 'block';
+        } else if (action === 'fill') {
+            document.getElementById('fillSection').style.display = 'block';
         }
+    }
 
-        function displayRawCSV() {
-            const csvTextView = document.getElementById('csvTextView');
-            csvTextView.innerHTML = ''; // Réinitialise le contenu
-            csvTextView.style.whiteSpace = "pre-wrap"; // Conserve les sauts de ligne
 
-            // Génère le texte brut à partir de `csvData`
-            const rawText = csvData.map(row => row.join(',')).join('\n');
-            csvTextView.textContent = rawText; // Affiche le texte brut
+    function populateColumnSelector(numCols) {
+        const columnSelector = document.getElementById('columnSelector');
+        columnSelector.innerHTML = '<option value="-1">Aucune</option>'; // Option par défaut "Aucune"
+        
+        // Ajouter les options dynamiquement pour chaque colonne
+        for (let i = 0; i < numCols; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Colonne ${i + 1}`;
+            columnSelector.appendChild(option);
         }
+    }
 
-        function displayTable() {
-            const tableHeader = document.getElementById('csvHeader');
-            const tableBody = document.getElementById('csvBody');
+    document.getElementById('toggle-view').addEventListener('change', function () {
+        const csvTable = document.getElementById('csvTable');
+        const csvTextView = document.getElementById('csvTextView');
+        const viewModeLabel = document.getElementById('view-mode-label');
 
-            tableHeader.innerHTML = '';
-            tableBody.innerHTML = '';
+        if (this.checked) {
+            // Mode Vue Brute (Texte)
+            csvTable.style.display = 'none'; // Masquer le tableau
+            csvTextView.style.display = 'block'; // Afficher la vue texte
+            viewModeLabel.textContent = 'Texte'; // Mettre à jour le label
+            displayRawCSV();  // Affiche le CSV brut dans le textarea
+        } else {
+            // Mode Tableau
+            csvTable.style.display = 'table'; // Afficher le tableau
+            csvTextView.style.display = 'none'; // Masquer la vue texte
+            viewModeLabel.textContent = 'Tableur'; // Mettre à jour le label
+            loadEditedCsv(); // Charger et afficher les données modifiées dans le tableau
+        }
+    });
 
-            if (csvData.length > 0) {
-                // Création de l'en-tête du tableau
-                const headerRow = document.createElement('tr');
-                csvData[0].forEach(header => {
-                    const th = document.createElement('th');
-                    th.textContent = header;
-                    headerRow.appendChild(th);
+    function displayRawCSV() {
+        const csvTextArea = document.getElementById('csvTextArea');
+        const csvContent = convertToCsv(csvData); // Convertir les données actuelles en CSV
+        csvTextArea.value = csvContent; // Afficher le contenu dans la zone de texte
+    }
+
+    function loadCsvText() {
+        const csvTextArea = document.getElementById('csvTextArea');
+        const csvTextView = document.getElementById('csvTextView');
+        
+        // Convertir les données initiales en format CSV
+        const csvContent = convertToCsv(initialData);
+        csvTextArea.value = csvContent; // Afficher le contenu CSV dans le textarea
+        csvTextView.style.display = 'block'; // Afficher la vue texte
+    }
+    
+    function displayTable() {
+        const tableHeader = document.getElementById('csvHeader');
+        const tableBody = document.getElementById('csvBody');
+
+        tableHeader.innerHTML = '';
+        tableBody.innerHTML = '';
+
+        if (csvData.length > 0) {
+            const headerRow = document.createElement('tr');
+            
+            // Parcourt les cellules de la première ligne (les en-têtes) pour les afficher et colorer
+            csvData[0].forEach((cell, index) => {
+                const th = document.createElement('th');
+                th.textContent = cell;
+                th.style.backgroundColor = '#1E90FF'; // Appliquer la couleur bleue aux colonnes détectées
+                th.onclick = () => sortTableByColumn(index); // Tri par colonne lors d'un clic
+                headerRow.appendChild(th);
+            });
+
+            const thDelete = document.createElement('th');
+            thDelete.textContent = 'Actions';
+            headerRow.appendChild(thDelete);
+            tableHeader.appendChild(headerRow);
+
+            // Affichage des lignes de données
+            for (let i = 1; i < csvData.length; i++) {
+                const row = document.createElement('tr');
+                csvData[i].forEach((cell, index) => {
+                    const td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.classList.add('editable');
+                    td.textContent = cell;
+                    row.appendChild(td);
                 });
-                tableHeader.appendChild(headerRow);
 
-                // Création des lignes de données
-                for (let i = 1; i < csvData.length; i++) {
-                    const row = document.createElement('tr');
-                    csvData[i].forEach(cell => {
-                        const td = document.createElement('td');
-                        td.textContent = cell;
-                        row.appendChild(td);
-                    });
-                    tableBody.appendChild(row);
+                const deleteButton = document.createElement('td');
+                deleteButton.innerHTML = `<button onclick="deleteRow(${i})">Supprimer</button>`;
+                row.appendChild(deleteButton);
+                tableBody.appendChild(row);
+            }
+
+            paginateTable();
+        } else {
+            alert("Le fichier CSV est vide ou mal formaté.");
+        }
+    }
+
+
+
+
+    function addRow() {
+        // Vérifie s'il existe au moins une ligne dans csvData pour connaître le nombre de colonnes
+        if (csvData.length > 0) {
+            // Récupère le nombre de colonnes à partir de la première ligne
+            const columnCount = csvData[0].length;
+
+            // Crée une nouvelle ligne avec le même nombre de colonnes
+            const newRow = new Array(columnCount).fill('');
+
+            // Sauvegarder l'état pour permettre annulation
+            saveState();
+
+            // Ajoute la nouvelle ligne au tableau CSV
+            csvData.push(newRow);
+
+            // Met à jour l'affichage du tableau
+            displayTable();
+        } else {
+            // Si le tableau est vide, crée une ligne avec un nombre de colonnes par défaut, par exemple 6
+            const defaultColumnCount = 6;
+            const newRow = new Array(defaultColumnCount).fill('');
+
+            saveState();
+            csvData.push(newRow);
+            displayTable();
+        }
+    }
+
+    dragElement(document.getElementById("colorPalette"));
+
+    function dragElement(elmnt) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        elmnt.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Obtenez la position initiale de la souris
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            // Calculez la nouvelle position du curseur
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Déplacez l'élément avec le curseur
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            // Arrêtez le mouvement lorsque le bouton de la souris est relâché
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    function toggleFloatingBar(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (section.style.display === 'none' || section.style.display === '') {
+            section.style.display = 'block';
+        } else {
+            section.style.display = 'none';
+        }
+    }
+
+    function closeFloatingBar(sectionId) {
+        document.getElementById(sectionId).style.display = 'none';
+    }
+
+    // Fonction pour fermer la palette
+    // Fonction pour fermer la palette
+    function closePalette() {
+        document.getElementById("colorPalette").style.display = "none";
+        document.getElementById("showColorPaletteBtn").style.display = "block"; // Affiche le bouton "Couleur" quand la palette est fermée
+    }
+
+    // Fonction pour afficher la palette
+    function showPalette() {
+        document.getElementById("colorPalette").style.display = "flex"; // Remet la palette visible
+        document.getElementById("showColorPaletteBtn").style.display = "none"; // Cache le bouton "Couleur"
+    }
+    function deleteColumn() {
+        const columnSelector = document.getElementById('columnSelector');
+        const selectedColIndex = parseInt(columnSelector.value);
+        if (selectedColIndex !== -1 && confirm("Êtes-vous sûr de vouloir supprimer cette colonne ?")) {
+            saveState();
+            csvData.forEach(row => row.splice(selectedColIndex, 1));
+            displayTable();
+        }
+    }
+
+    function deleteEmptyRows() {
+        saveState();
+        csvData = csvData.filter(row => row.some(cell => cell.trim() !== ''));
+        displayTable();
+    }
+
+    function exportCSV() {
+        try {
+            let fileName = document.getElementById('fileNameInput').value.trim();
+            
+            // Vérifie si le nom de fichier est vide
+            if (!fileName) {
+                alert("Veuillez spécifier un nom de fichier.");
+                return;  // Sort de la fonction si aucun nom n'est spécifié
+            }
+
+            // Créer le contenu CSV
+            let csvContent = csvData.map(e => e.join(",")).join("\n");
+            
+            // Vérifie s'il y a des données à exporter
+            if (csvData.length === 0 || !csvContent) {
+                alert("Aucune donnée à exporter.");
+                return; // Sort de la fonction s'il n'y a pas de données
+            }
+
+            // Crée le fichier Blob et déclenche le téléchargement
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `${fileName}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert("Le fichier a été exporté avec succès !");
+        } catch (error) {
+            // Gestion des erreurs génériques
+            console.error("Erreur lors de l'exportation du fichier :", error);
+            alert("Une erreur est survenue lors de l'exportation. Veuillez réessayer.");
+        }
+    }
+
+    function parseCSV(csv) {
+        const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+
+        const rows = csv.split('\n').map(row => row.split(separator));
+
+        const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
+
+        const metaRows = [];
+        const dataRows = [];
+        let headerDetected = false;
+
+        for (let i = 0; i < filteredRows.length; i++) {
+            const row = filteredRows[i];
+
+            // Vérifier si la ligne est structurée comme un CSV (plusieurs colonnes avec un séparateur cohérent)
+            if (isLikelyCSV(row)) {
+                // Si c'est le premier ensemble de colonnes structurées, nous considérons cela comme un en-tête potentiel
+                if (!headerDetected) {
+                    if (isValidHeader(row)) {
+                        headerDetected = true;
+                        dataRows.push(row); // Ajouter les en-têtes
+                    } else {
+                        metaRows.push(row.join(separator)); // Si ce n'est pas un en-tête valide, traiter comme métadonnée
+                    }
+                } else {
+                    // Ajouter les lignes suivantes en tant que données
+                    dataRows.push(row);
                 }
             } else {
-                alert("Le fichier CSV semble vide ou mal formaté.");
+                // Ajouter les lignes non structurées comme des métadonnées
+                metaRows.push(row.join(separator));
             }
         }
-    </script>
+
+        // Affiche les métadonnées détectées
+        displayMetadata(metaRows);
+
+        // Stocke les données CSV structurées
+        csvData = dataRows;
+        originalCsvData = JSON.parse(JSON.stringify(dataRows));
+
+        if (dataRows.length > 0) {
+            displayTable();
+            populateColumnSelector(dataRows[0].length);
+        } else {
+            alert('Le fichier CSV semble vide ou mal formaté.');
+        }
+    }
+
+    // Fonction pour détecter si une ligne est probablement une ligne de données CSV structurées
+    function isLikelyCSV(row) {
+        // Si la ligne contient plusieurs colonnes (plus de 1 cellule non vide) et que les longueurs des cellules sont relativement similaires, on la considère comme CSV
+        return row.length > 1 && row.every(cell => cell.trim() !== '');
+    }
+
+    // Vérifie si la ligne est un en-tête CSV valide en fonction des critères comme des noms de colonnes usuels
+    function isValidHeader(row) {
+        // Récupérer les en-têtes personnalisés si fournis
+        const customHeadersInput = document.getElementById('customHeaders').value;
+        const commonHeaders = customHeadersInput
+            ? customHeadersInput.split(',').map(header => header.trim().toLowerCase())
+            : ['id', 'nom', 'prenom', 'email', 'pays', 'age', 'date', 'telephone', 'adresse'];
+
+        return row.every(cell => {
+            const lowerCaseCell = cell.trim().toLowerCase();
+            return commonHeaders.includes(lowerCaseCell) || isLikelyHeader(cell);
+        });
+    }
+
+    // Détecte si une cellule ressemble à un en-tête probable (majuscule, mot unique, etc.)
+    function isLikelyHeader(cell) {
+        const trimmedCell = cell.trim();
+        return /^[A-Z][a-zA-Z]+$/.test(trimmedCell) || trimmedCell.length <= 20;
+    }
+
+    function displayMetadata(metaRows) {
+        const metadataDisplay = document.getElementById('metadataDisplay');
+        metadataDisplay.innerHTML = '';
+
+        metaRows.forEach(row => {
+            const p = document.createElement('p');
+            // Vérifiez si la ligne est un tableau, sinon affichez directement la ligne
+            if (Array.isArray(row)) {
+                p.textContent = row.join(' '); // Joindre les cellules de la ligne de métadonnées en une seule chaîne
+            } else {
+                p.textContent = row; // Afficher la ligne telle quelle si ce n'est pas un tableau
+            }
+            metadataDisplay.appendChild(p);
+        });
+    }
+
+    function resetTable() {
+        saveState();
+        csvData = JSON.parse(JSON.stringify(originalCsvData));
+        selectedColumns = {};
+        highlightedCells.clear();
+        displayTable();
+        resetColorPaletteSelection();
+    }
+
+    function saveState() {
+        const state = {
+            data: JSON.parse(JSON.stringify(csvData)),  // Sauvegarde les données textuelles
+            styles: getTableStyles()  // Sauvegarde les styles des cellules
+        };
+        history.push(state);
+        redoStack = [];
+    }
+
+    // Fonction pour capturer les styles de toutes les cellules
+    function getTableStyles() {
+        const styles = [];
+        const rows = document.querySelectorAll('#csvBody tr');
+        rows.forEach((row) => {
+            const rowStyles = [];
+            row.querySelectorAll('td').forEach((cell) => {
+                rowStyles.push({
+                    backgroundColor: cell.style.backgroundColor,
+                    color: cell.style.color,
+                    fontSize: cell.style.fontSize,
+                    fontWeight: cell.style.fontWeight,
+                    textDecoration: cell.style.textDecoration
+                });
+            });
+            styles.push(rowStyles);
+        });
+        return styles;
+    }
+
+    // Fonction pour restaurer les styles des cellules
+    function applyTableStyles(styles) {
+        const rows = document.querySelectorAll('#csvBody tr');
+        styles.forEach((rowStyles, rowIndex) => {
+            const row = rows[rowIndex];
+            row.querySelectorAll('td').forEach((cell, cellIndex) => {
+                const style = rowStyles[cellIndex];
+                cell.style.backgroundColor = style.backgroundColor || '';
+                cell.style.color = style.color || '';
+                cell.style.fontSize = style.fontSize || '';
+                cell.style.fontWeight = style.fontWeight || '';
+                cell.style.textDecoration = style.textDecoration || '';
+            });
+        });
+    }
+
+    // Fonction pour annuler une action
+    function undo() {
+        if (history.length > 0) {
+            const lastState = history.pop();
+            redoStack.push({
+                data: JSON.parse(JSON.stringify(csvData)),
+                styles: getTableStyles()
+            });
+            csvData = lastState.data;
+            displayTable();
+            applyTableStyles(lastState.styles);
+        }
+    }
+
+    // Fonction pour rétablir une action annulée
+    function redo() {
+        if (redoStack.length > 0) {
+            const nextState = redoStack.pop();
+            history.push({
+                data: JSON.parse(JSON.stringify(csvData)),
+                styles: getTableStyles()
+            });
+            csvData = nextState.data;
+            displayTable();
+            applyTableStyles(nextState.styles);
+        }
+    }
+
+    function populateColumnSelector(numCols) {
+        const select = document.getElementById('columnSelector');
+        select.innerHTML = '<option value="-1">Aucune</option>';
+        for (let i = 0; i < numCols; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Colonne ${i + 1}`;
+            select.appendChild(option);
+        }
+    }
+
+    function selectTextColor(color) {
+        const columnSelector = document.getElementById('columnSelector');
+        const selectedColIndex = parseInt(columnSelector.value);
+        if (selectedColIndex !== -1) {
+            selectedColumns[selectedColIndex] = getColorCode(color);
+            applyColumnTextColors();
+        }
+    }
+
+    function getColorCode(color) {
+        const colorMap = {
+            'red': '#FF6347',
+            'blue': '#1E90FF',
+            'green': '#32CD32',
+            'yellow': '#FFD700',
+            'purple': '#9370DB'
+        };
+        return colorMap[color] || '';
+    }
+
+    function applyColumnTextColors() {
+        const tableBody = document.getElementById('csvBody');
+        tableBody.querySelectorAll('tr').forEach((row, rowIndex) => {
+            row.querySelectorAll('td').forEach((cell, colIndex) => {
+                if (selectedColumns[colIndex]) {
+                    cell.style.color = selectedColumns[colIndex];
+                } else {
+                    cell.style.color = '';
+                }
+            });
+        });
+    }
+
+    function updateColorPaletteSelection(selectedColor) {
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+        document.querySelector(`.color-${selectedColor}`).classList.add('selected');
+    }
+
+    function resetColorPaletteSelection() {
+        document.querySelectorAll('.color-option').forEach(el => el.classList.remove('selected'));
+    }
+
+    function paginateTable() {
+        const tableBody = document.getElementById('csvBody');
+        const totalRows = csvData.length;
+        const startIndex = (currentPage - 1) * rowsPerPage + 1;
+        const endIndex = Math.min(startIndex + rowsPerPage - 1, totalRows - 1);
+        const visibleRows = csvData.slice(startIndex, endIndex + 1);
+
+        tableBody.innerHTML = '';
+        visibleRows.forEach((row, rowIndex) => {
+            const tr = document.createElement('tr');
+            row.forEach((cell, colIndex) => {
+                const td = document.createElement('td');
+                td.textContent = cell;
+                td.contentEditable = true;
+                td.classList.add('editable');
+                if (selectedColumns[colIndex]) {
+                    td.style.backgroundColor = selectedColumns[colIndex];
+                }
+                tr.appendChild(td);
+            });
+
+            const deleteButton = document.createElement('td');
+            deleteButton.innerHTML = `<button onclick="deleteRow(${startIndex + rowIndex})">Supprimer</button>`;
+            tr.appendChild(deleteButton);
+
+            tableBody.appendChild(tr);
+        });
+    }
+
+    function nextPage() {
+        const totalRows = csvData.length - 1;
+        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        if (currentPage < totalPages) {
+            currentPage++;
+            paginateTable();
+        }
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            paginateTable();
+        }
+    }
+
+    function printTable() {
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write('<html><head><title>Impression du tableau</title>');
+        printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } table, th, td { border: 1px solid #ddd; } th, td { padding: 12px; text-align: left; } th { background-color: #4CAF50; color: white; } td { background-color: #f9f9f9; }</style>');
+        printWindow.document.write('</head><body>');
+
+        const totalRows = csvData.length - 1;
+        const totalPages = Math.ceil(totalRows / rowsToPrint);
+
+        for (let page = 0; page < totalPages; page++) {
+            printWindow.document.write('<table><thead>');
+            printWindow.document.write('<tr>');
+            csvData[0].forEach(header => {
+                printWindow.document.write('<th>' + header + '</th>');
+            });
+            printWindow.document.write('</tr></thead><tbody>');
+
+            const startIndex = page * rowsToPrint + 1;
+            const endIndex = Math.min(startIndex + rowsToPrint - 1, csvData.length - 1);
+
+            for (let i = startIndex; i <= endIndex; i++) {
+                printWindow.document.write('<tr>');
+                csvData[i].forEach((cell, colIndex) => {
+                    let tdStyle = '';
+                    if (selectedColumns[colIndex]) {
+                        tdStyle = `style="background-color:${selectedColumns[colIndex]}"`;
+                    }
+                    printWindow.document.write('<td ' + tdStyle + '>' + cell + '</td>');
+                });
+                printWindow.document.write('</tr>');
+            }
+            printWindow.document.write('</tbody></table>');
+            if (page < totalPages - 1) {
+                printWindow.document.write('<div style="page-break-after: always;"></div>');
+            }
+        }
+
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+    }
+
+    function exportHTML() {
+        try {
+            let fileName = document.getElementById('fileNameInput').value.trim();
+            
+            // Vérifie si le nom de fichier est vide
+            if (!fileName) {
+                alert("Veuillez spécifier un nom de fichier.");
+                return;  // Sort de la fonction si aucun nom n'est spécifié
+            }
+
+            let table = document.getElementById("csvTable");
+
+            // Vérifie s'il y a des données dans le tableau
+            if (!table || table.rows.length === 0) {
+                alert("Aucune donnée à exporter.");
+                return;  // Sort de la fonction si le tableau est vide
+            }
+
+            // Crée une copie du tableau sans la colonne du bouton "Supprimer"
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html lang="fr">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Export HTML</title>
+                    <style>
+                        table { border-collapse: collapse; width: 100%; }
+                        table, th, td { border: 1px solid #ddd; }
+                        th, td { padding: 12px; text-align: left; }
+                        th { background-color: #4CAF50; color: white; }
+                        td { background-color: #f9f9f9; }
+                    </style>
+                </head>
+                <body>
+                    <table>
+                        <thead>
+                            <tr>`;
+
+            // Exclure la dernière colonne de chaque en-tête (colonne "Supprimer")
+            const headerRow = table.querySelector("thead tr");
+            const thElements = headerRow.querySelectorAll("th");
+            thElements.forEach((th, index) => {
+                if (index < thElements.length - 1) { // Ignorer la dernière colonne (bouton supprimer)
+                    htmlContent += `<th>${th.textContent}</th>`;
+                }
+            });
+
+            htmlContent += `</tr></thead><tbody>`;
+
+            // Parcourir les lignes du corps du tableau, sans la colonne "Supprimer"
+            const rows = table.querySelectorAll("tbody tr");
+            rows.forEach(row => {
+                htmlContent += `<tr>`;
+                const tdElements = row.querySelectorAll("td");
+                tdElements.forEach((td, index) => {
+                    if (index < tdElements.length - 1) { // Ignorer la dernière colonne (bouton supprimer)
+                        htmlContent += `<td>${td.textContent}</td>`;
+                    }
+                });
+                htmlContent += `</tr>`;
+            });
+
+            htmlContent += `</tbody></table></body></html>`;
+
+            // Création du fichier HTML
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${fileName}.html`;  // Utilise le nom spécifié par l'utilisateur
+            link.click();
+            URL.revokeObjectURL(url);
+
+            alert("Le fichier HTML a été exporté avec succès !");
+        } catch (error) {
+            // Gestion des erreurs génériques
+            console.error("Erreur lors de l'exportation du fichier HTML :", error);
+            alert("Une erreur est survenue lors de l'exportation. Veuillez réessayer.");
+        }
+    }
+
+    function deleteRow(rowIndex) {
+        // Demande une confirmation à l'utilisateur avant de supprimer
+        if (confirm("Êtes-vous sûr de vouloir supprimer cette ligne ?")) {
+            // Sauvegarde l'état actuel avant suppression pour pouvoir annuler
+            saveState();
+
+            // Supprime la ligne spécifiée
+            csvData.splice(rowIndex, 1);
+
+            // Met à jour l'affichage du tableau
+            displayTable();
+            
+            alert("Ligne supprimée avec succès.");
+        } else {
+            alert("La suppression a été annulée.");
+        }
+    }
+
+    function searchTable() {
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        const tableBody = document.getElementById('csvBody');
+        const searchColumn = document.getElementById('searchColumn').value;
+        const exactMatch = document.getElementById('exactMatch').checked;
+        const useRegex = document.getElementById('useRegex').checked;
+
+        const searchTerms = parseSearchInput(searchInput, useRegex); // Parse the input for advanced terms
+
+        tableBody.querySelectorAll('tr').forEach((row) => {
+            let found = searchTerms.every(term => {
+                const cells = searchColumn == -1 ? Array.from(row.children) : [row.children[searchColumn]];
+                return cells.some(td => {
+                    let cellText = removeAccents(td.textContent.toLowerCase());
+
+                    if (useRegex) {
+                        const regex = new RegExp(term, 'i'); // Case-insensitive regex
+                        return regex.test(cellText);
+                    } else if (exactMatch) {
+                        return cellText === term; // Exact match search
+                    } else {
+                        return cellText.includes(term); // Normal search
+                    }
+                });
+            });
+
+            row.style.display = found ? '' : 'none';
+            if (found) {
+                highlightText(row, searchTerms);
+            } else {
+                removeHighlights(row);
+            }
+        });
+    }
+
+    // Fonction modifiée pour prendre en charge les termes de recherche avancés
+    function parseSearchInput(input, useRegex) {
+        if (useRegex) {
+            return [input]; // Retourne l'expression entière comme un terme de recherche
+        } else {
+            const regex = /"(.*?)"|\S+/g;
+            return input.match(regex) || [];
+        }
+    }
+
+
+    // Fonction pour supprimer les accents
+    function removeAccents(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function highlightText(row, searchTerms) {
+        row.querySelectorAll('td').forEach(td => {
+            searchTerms.forEach(term => {
+                const searchText = removeAccents(term.toLowerCase());
+                const originalText = td.innerHTML;
+                const regex = new RegExp(`(${searchText})`, 'gi');
+                td.innerHTML = originalText.replace(regex, match => `<span style="background-color: yellow;">${match}</span>`);
+            });
+        });
+    }
+
+    function selectCell(cell) {
+        // Si la cellule est déjà sélectionnée, on la dé-sélectionne
+        if (selectedCells.includes(cell)) {
+            cell.classList.remove('selected');
+            selectedCells = selectedCells.filter(selectedCell => selectedCell !== cell);
+        } else {
+            cell.classList.add('selected');
+            selectedCells.push(cell);
+        }
+    }
+
+    function applyActionToSelectedCells(actionType, value) {
+        selectedCells.forEach(cell => {
+            switch(actionType) {
+                case 'backgroundColor':
+                    cell.style.backgroundColor = value;
+                    break;
+                case 'color':
+                    cell.style.color = value;
+                    break;
+                case 'fontWeight':
+                    cell.style.fontWeight = value;
+                    break;
+                case 'textDecoration':
+                    cell.style.textDecoration = value;
+                    break;
+                case 'fontSize':
+                    cell.style.fontSize = value;
+                    break;
+                default:
+                    break;
+            }
+        });
+    }
+
+    function clearSelection() {
+        selectedCells.forEach(cell => cell.classList.remove('selected'));
+        selectedCells = [];
+    }
+
+    function applyStyle(style, value = null) {
+        if (selectedCell) {
+            switch (style) {
+                case 'bold':
+                    selectedCell.style.fontWeight = value || 'bold';
+                    break;
+                case 'underline':
+                    selectedCell.style.textDecoration = value || 'underline';
+                    break;
+                case 'color':
+                    selectedCell.style.color = value || 'black';
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            alert("Veuillez sélectionner une cellule avant d'appliquer un style.");
+        }
+    }
+
+    // Fonction pour supprimer les surbrillances
+    function removeHighlights(row) {
+        row.querySelectorAll('td').forEach(td => {
+            td.innerHTML = td.textContent; // Remet le texte brut sans balise HTML
+        });
+    }
+
+    function sortTableByColumn(columnIndex) {
+        saveState();
+
+        // Détection automatique du type de la colonne (nombre ou texte)
+        const isNumericColumn = csvData.slice(1).every(row => !isNaN(row[columnIndex]));
+
+        // Initialiser l'ordre de tri si non défini pour la colonne
+        if (!sortOrder.hasOwnProperty(columnIndex)) {
+            sortOrder[columnIndex] = 'asc'; // Le tri commence par ascendant par défaut
+        }
+
+        // Tri en fonction du type de données
+        csvData.sort((a, b) => {
+            let aVal = a[columnIndex];
+            let bVal = b[columnIndex];
+
+            // Gestion des valeurs nulles ou vides
+            if (!aVal) return 1;
+            if (!bVal) return -1;
+
+            if (isNumericColumn) {
+                aVal = parseFloat(aVal);
+                bVal = parseFloat(bVal);
+            } else {
+                aVal = aVal.toLowerCase();
+                bVal = bVal.toLowerCase();
+            }
+
+            // Tri ascendant ou descendant
+            if (sortOrder[columnIndex] === 'asc') {
+                return aVal > bVal ? 1 : (aVal < bVal ? -1 : 0);
+            } else {
+                return aVal < bVal ? 1 : (aVal > bVal ? -1 : 0);
+            }
+        });
+
+        // Inverser l'ordre de tri pour la prochaine fois
+        sortOrder[columnIndex] = sortOrder[columnIndex] === 'asc' ? 'desc' : 'asc';
+
+        displayTable();
+    }
+
+    function boldText() {
+        applyActionToSelectedText('bold');
+    }
+
+    function italicizeText() {
+        applyActionToSelectedText('italic');
+    }
+
+    function underlineText() {
+        applyActionToSelectedText('underline');
+    }
+
+    function increaseFontSize() {
+        applyActionToSelectedText('fontSize', '5'); // '5' correspond à une taille de police plus grande
+    }
+
+    function decreaseFontSize() {
+        applyActionToSelectedText('fontSize', '1'); // '1' correspond à une taille de police plus petite
+    }
+
+    function resetFormatting() {
+        applyActionToSelectedText('removeFormat'); // Supprime tous les formats appliqués au texte sélectionné
+    }
+
+    // Fonction générique pour appliquer des actions au texte sélectionné
+    function applyActionToSelectedText(action, value = null) {
+        if (window.getSelection().rangeCount > 0) {
+            // Exécute la commande sur la sélection actuelle
+            document.execCommand(action, false, value);
+        } else {
+            alert("Veuillez sélectionner du texte avant d'appliquer une action.");
+        }
+    }
+
+    function fillColumn() {
+        const columnSelector = document.getElementById('columnSelector');
+        const selectedColIndex = parseInt(columnSelector.value);
+        const value = document.getElementById('fillColumnValue').value;
+        if (selectedColIndex !== -1) {
+            saveState();
+            csvData.forEach((row, i) => {
+                if (i > 0) {
+                    row[selectedColIndex] = value;
+                }
+            });
+            displayTable();
+        }
+    }
+
+    function changeFont() {
+        const font = document.getElementById('fontSelector').value;
+        document.getElementById('csvBody').style.fontFamily = font;
+    }
+
+    function detectDuplicates() {
+        let duplicates = [];
+        let seen = new Set();
+        
+        // Parcours du tableau csvData pour détecter les lignes dupliquées
+        csvData.forEach((row, index) => {
+            let rowString = row.join(','); // Créer une chaîne de caractères unique pour chaque ligne
+            
+            if (seen.has(rowString)) {
+                duplicates.push(index); // Si la ligne est déjà vue, on l'ajoute comme doublon
+            } else {
+                seen.add(rowString); // Sinon, on l'ajoute dans l'ensemble des lignes vues
+            }
+        });
+
+        if (duplicates.length > 0) {
+            alert(`Lignes dupliquées trouvées aux index : ${duplicates.join(', ')}`);
+            highlightDuplicates(duplicates);
+        } else {
+            alert("Aucun doublon trouvé.");
+        }
+    }
+
+    // Fonction pour surligner les lignes dupliquées
+    function highlightDuplicates(duplicateIndexes) {
+        const tableBody = document.getElementById('csvBody');
+
+        // Supprime d'abord les surlignages existants
+        tableBody.querySelectorAll('tr').forEach(row => {
+            row.style.backgroundColor = '';
+        });
+
+        // Applique un surlignage jaune aux lignes dupliquées
+        duplicateIndexes.forEach(index => {
+            tableBody.querySelectorAll('tr')[index - 1].style.backgroundColor = 'yellow'; // -1 car le tableau commence à l'index 1
+        });
+    }
+
+    function mergeCells() {
+        const selectedColIndex = parseInt(document.getElementById('columnSelector').value);
+        if (selectedColIndex !== -1) {
+            const selectedRowIndex = 1; // Example row for merging
+            const cell1 = document.querySelector(`#csvBody tr:nth-child(${selectedRowIndex}) td:nth-child(${selectedColIndex})`);
+            const cell2 = document.querySelector(`#csvBody tr:nth-child(${selectedRowIndex + 1}) td:nth-child(${selectedColIndex})`);
+            if (cell1 && cell2) {
+                saveState();
+                cell1.colSpan = 2; // Merge cells
+                cell2.remove(); // Remove the second cell
+            }
+        }
+    }
+    function replaceInTable() {
+        const searchValue = document.getElementById('searchInput').value.trim();
+        const replaceValue = document.getElementById('replaceInput').value.trim();
+        const searchColumn = parseInt(document.getElementById('searchColumn').value, 10);
+        const exactMatch = document.getElementById('exactMatch').checked;
+        const useRegex = document.getElementById('useRegex').checked;
+
+        if (!searchValue || !replaceValue) {
+            alert("Veuillez entrer une valeur de recherche et une valeur de remplacement.");
+            return;
+        }
+
+        let regex = null;
+        if (useRegex) {
+            try {
+                regex = new RegExp(searchValue, 'gi');
+            } catch (error) {
+                alert("Expression régulière invalide.");
+                return;
+            }
+        }
+
+        const tableBody = document.getElementById('csvBody');
+        let replacementsMade = 0;
+
+        tableBody.querySelectorAll('tr').forEach((row) => {
+            row.querySelectorAll('td').forEach((td, colIndex) => {
+                // Appliquer la recherche uniquement à la colonne sélectionnée (ou à toutes les colonnes si "Toutes" est sélectionnée)
+                if (searchColumn === -1 || colIndex === searchColumn) {
+                    const cellText = td.textContent;
+
+                    if (useRegex) {
+                        // Remplacer avec regex
+                        if (regex.test(cellText)) {
+                            td.innerHTML = cellText.replace(regex, replaceValue);
+                            replacementsMade++;
+                        }
+                    } else {
+                        // Recherche exacte ou partielle
+                        const searchPattern = exactMatch ? searchValue : searchValue.toLowerCase();
+                        const cellPattern = exactMatch ? cellText : cellText.toLowerCase();
+
+                        if (cellPattern.includes(searchPattern)) {
+                            td.innerHTML = exactMatch
+                                ? cellText.replace(searchValue, replaceValue)
+                                : cellText.replace(new RegExp(searchValue, 'gi'), replaceValue);
+                            replacementsMade++;
+                        }
+                    }
+                }
+            });
+        });
+
+        if (replacementsMade > 0) {
+            alert(`${replacementsMade} remplacements effectués.`);
+        } else {
+            alert("Aucun remplacement trouvé.");
+        }
+    }
+</script>
 </body>
 </html>
