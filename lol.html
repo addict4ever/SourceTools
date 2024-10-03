@@ -1,0 +1,6 @@
+function convertToCsv(data) {
+    if (data.length === 0) return '';
+
+    const rows = data.map(row => row.join(',')); // Convertir les lignes en CSV
+    return rows.join('\n'); // Retourner le CSV en tant que chaîne
+}
