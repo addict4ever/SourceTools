@@ -1,0 +1,15 @@
+function loadEditedCsv() {
+    const csvTextArea = document.getElementById('csvTextArea').value.trim();
+    
+    if (csvTextArea) {
+        const parsedData = csvTextArea.split('\n').map(row => row.split(',').map(cell => cell.trim()));
+
+        // Valider que les données sont bien formées
+        if (parsedData.length > 0) {
+            csvData = parsedData; // Mettre à jour csvData avec les nouvelles données
+            displayTable();  // Mettre à jour le tableau avec les nouvelles données
+        } else {
+            alert('Le contenu CSV semble vide ou mal formaté.');
+        }
+    }
+}
