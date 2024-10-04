@@ -108,6 +108,14 @@
             overflow: hidden; /* Empêche les débordements lors des ajustements */
         }
 
+        .drag-handle {
+            cursor: move;
+            background-color: #ccc;
+            padding: 5px;
+            text-align: center;
+            user-select: none;
+        }
+
         .floating-bar .close-btn {
             position: absolute;
             top: 10px;
@@ -493,6 +501,7 @@
     <div class="container">
         <!-- Boutons pour afficher/masquer les sections flottantes -->
         <div class="floating-buttons">
+            <button onclick="toggleFloatingBar('formatSection')">🛠️ Outils de Mise en Forme</button>
             <button id="toggleSearchSection" onclick="toggleFloatingBar('searchSection')">🔍 Recherche</button>
             <button id="toggleReplaceSection" onclick="toggleFloatingBar('replaceSection')">🔄 Remplacer</button>
             <button id="toggleFillSection" onclick="toggleFloatingBar('fillSection')">⚙️ Remplir Colonne</button>
@@ -562,6 +571,26 @@
         </div>
     </div>
     
+    <div class="floating-bar" id="formatSection" style="display: none; max-height: 400px; overflow-y: auto;">
+        <div id="dragHandle" class="drag-handle" style="cursor: move; background-color: #ccc; padding: 5px; text-align: center;">
+            Déplacer la Barre
+        </div>
+        <span class="close-btn" onclick="closeFloatingBar('formatSection')">X</span>
+        <div class="format-section">
+            <h3>🖋️ Actions de Formatage</h3>
+            <button onclick="copySelectedText()">Copier</button>
+            <button onclick="pasteText()">Coller</button> 
+            <button onclick="applyActionToSelectedText('bold')">Mettre en Gras</button>
+            <button onclick="applyActionToSelectedText('italic')">Mettre en Italique</button>
+            <button onclick="applyActionToSelectedText('underline')">Souligner</button>
+            <button onclick="applyActionToSelectedText('foreColor', 'red')">Changer Couleur Texte (Rouge)</button>
+            <button onclick="applyActionToSelectedText('backColor', 'yellow')">Changer Couleur Arrière-plan (Jaune)</button>
+            <button onclick="applyActionToSelectedText('fontSize', '5')">Augmenter Taille Texte</button>
+            <button onclick="applyActionToSelectedText('fontSize', '1')">Diminuer Taille Texte</button>
+            <button onclick="resetFormatting()">Réinitialiser Formatage</button>
+        </div>
+    </div>
+    
     <label for="columnSelector">Sélectionner une colonne :</label>
     <select id="columnSelector">
         <option value="-1">Aucune</option>
@@ -606,6 +635,11 @@
         <tbody id="csvBody"></tbody>
     </table>
 
+    <div id="csvTextView" style="display: none;" class="csv-text-view">
+        <textarea id="csvTextArea" placeholder="Éditez votre CSV ici..."></textarea>
+        <button id="resetCsvButton">Réinitialiser le CSV</button>
+    </div>
+
     <div class="pagination">
         <button onclick="prevPage()">Précédent</button>
         <button onclick="nextPage()">Suivant</button>
@@ -624,30 +658,6 @@
         <option value="Impact">Impact</option>
         <option value="Tahoma">Tahoma</option>
     </select>
-
-
-    <br><br>
-
-    <button class="format-button" onclick="boldText()">Mettre en Gras</button>
-    <button class="format-button" onclick="italicizeText()">Mettre en Italique</button>
-    <button class="format-button" onclick="underlineText()">Souligner</button>
-    <button class="format-button" onclick="changeTextColor()">Changer Couleur</button>
-    <button class="format-button" onclick="highlightText()">Surligner</button>
-    <button class="format-button" onclick="increaseFontSize()">Augmenter Taille</button>
-    <button class="format-button" onclick="decreaseFontSize()">Diminuer Taille</button>
-    <button class="format-button" onclick="resetFormatting()">Réinitialiser Formatage</button>
-
-
-    <br><br>
-
-    <div id="contextMenu" style="display:none; position:absolute; background-color:#fff; border:1px solid #ccc; z-index:1000;">
-        <button onclick="applyActionToSelectedCells('backgroundColor', 'yellow')">Changer arrière-plan (Jaune)</button>
-        <button onclick="applyActionToSelectedCells('color', 'blue')">Changer couleur texte (Bleu)</button>
-        <button onclick="applyActionToSelectedCells('fontWeight', 'bold')">Mettre en Gras</button>
-        <button onclick="applyActionToSelectedCells('textDecoration', 'underline')">Souligner</button>
-        <button onclick="applyActionToSelectedCells('fontSize', '16px')">Augmenter Taille</button>
-    </div>
-    
     
 </div>
 
@@ -665,6 +675,10 @@
     let sortOrder = {}; // Objet pour stocker l'ordre de tri de chaque colonne
     let selectedCells = []; // Stocke les cellules sélectionnées
 
+
+    const formatSection = document.getElementById('formatSection');
+    const dragHandle = document.getElementById('dragHandle');
+    makeDraggable(formatSection, dragHandle);
 
     document.getElementById('rowsPerPage').addEventListener('change', function() {
         rowsPerPage = parseInt(this.value);
@@ -690,16 +704,21 @@
     });
 
     document.addEventListener('contextmenu', function (e) {
-        e.preventDefault();
-        const contextMenu = document.getElementById('contextMenu');
-        contextMenu.style.top = `${e.clientY}px`;
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.style.display = 'block';
+        e.preventDefault();  // Empêche le menu contextuel par défaut
+        
+        // Positionner la barre flottante à l'endroit du clic droit
+        const formatSection = document.getElementById('formatSection');
+        
+        formatSection.style.top = `${e.clientY}px`;  // Position verticale
+        formatSection.style.left = `${e.clientX}px`;  // Position horizontale
+        
+        formatSection.style.display = 'block';  // Afficher la barre flottante
     });
 
+
     document.addEventListener('click', function () {
-        const contextMenu = document.getElementById('contextMenu');
-        contextMenu.style.display = 'none'; // Cacher le menu contextuel
+        const formatSection = document.getElementById('formatSection');
+        formatSection.style.display = 'none';  // Masquer la barre flottante
     });
 
     function colorColumn(colIndex, color) {
@@ -710,6 +729,54 @@
                 cell.style.backgroundColor = color;
             }
         });
+    }
+
+    closePalette()
+
+    function pasteText() {
+        navigator.clipboard.readText()
+            .then(text => {
+                if (text) {
+                    pasteAtCursor(text); // Coller le texte à l'emplacement du curseur
+                } else {
+                    alert('Aucun texte dans le presse-papiers.');
+                }
+            })
+            .catch(err => {
+                console.error('Échec du collage : ', err);
+            });
+    }
+
+    // Fonction pour coller le texte à l'emplacement du curseur
+    function pasteAtCursor(text) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return false;
+
+        const range = selection.getRangeAt(0);
+        range.deleteContents(); // Supprime le texte sélectionné (s'il y en a)
+        
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode); // Insère le texte copié à l'endroit du curseur
+
+        // Met à jour la sélection pour être après le texte collé
+        range.setStartAfter(textNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    function copySelectedText() {
+        const selectedText = window.getSelection().toString();
+        if (selectedText) {
+            navigator.clipboard.writeText(selectedText)
+                .then(() => {
+                    alert('Texte copié dans le presse-papiers.');
+                })
+                .catch(err => {
+                    console.error('Échec de la copie du texte : ', err);
+                });
+        } else {
+            alert('Aucun texte sélectionné à copier.');
+        }
     }
 
     function showActionOptions() {
@@ -769,6 +836,36 @@
         csvTextArea.value = csvContent; // Afficher le contenu dans la zone de texte
     }
 
+    function convertToCsv(data) {
+        if (data.length === 0) return '';
+
+        const rows = data.map(row => row.join(',')); // Convertir les lignes en CSV
+        return rows.join('\n'); // Retourner le CSV en tant que chaîne
+    }
+
+    function loadEditedCsv() {
+        const csvTextArea = document.getElementById('csvTextArea').value.trim();
+        
+        if (csvTextArea) {
+            parseCSV(csvTextArea);  // Utiliser parseCSV pour traiter le contenu édité
+        } else {
+            alert('Le contenu CSV est vide ou mal formaté.');
+        }
+    }
+    
+    document.getElementById('resetCsvButton').addEventListener('click', function() {
+        // Restaurer les données CSV d'origine
+        csvData = JSON.parse(JSON.stringify(originalCsvData));
+
+        // Réinitialiser le contenu du textarea avec les données originales
+        const csvTextArea = document.getElementById('csvTextArea');
+        csvTextArea.value = convertToCsv(csvData);
+
+        // Mettre à jour le tableau avec les données originales
+        displayTable();
+
+    });
+    
     function loadCsvText() {
         const csvTextArea = document.getElementById('csvTextArea');
         const csvTextView = document.getElementById('csvTextView');
@@ -828,6 +925,37 @@
 
 
 
+
+    function makeDraggable(elmnt, handle) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        handle.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            e.preventDefault();
+            // Obtenez la position initiale de la souris
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e.preventDefault();
+            // Calculez la nouvelle position du curseur
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // Déplacez l'élément avec le curseur
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
 
     function addRow() {
         // Vérifie s'il existe au moins une ligne dans csvData pour connaître le nombre de colonnes
@@ -972,11 +1100,14 @@
         }
     }
 
-    function parseCSV(csv) {
-        const separator = csv.includes(';') ? ';' : csv.includes('\t') ? '\t' : ',';
+    function loadCSV(csvData) {
+        // Déterminer le séparateur en fonction du contenu
+        const separator = csvContent.includes(';') ? ';' : csvContent.includes('\t') ? '\t' : ',';
 
-        const rows = csv.split('\n').map(row => row.split(separator));
+        // Diviser le contenu CSV en lignes
+        const rows = csvContent.split('\n').map(row => row.split(separator));
 
+        // Filtrer les lignes vides
         const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
 
         const metaRows = [];
@@ -986,18 +1117,18 @@
         for (let i = 0; i < filteredRows.length; i++) {
             const row = filteredRows[i];
 
-            // Vérifier si la ligne est structurée comme un CSV (plusieurs colonnes avec un séparateur cohérent)
+            // Vérifier si la ligne est probablement un CSV valide
             if (isLikelyCSV(row)) {
-                // Si c'est le premier ensemble de colonnes structurées, nous considérons cela comme un en-tête potentiel
+                // Détecter l'en-tête pour la première fois
                 if (!headerDetected) {
                     if (isValidHeader(row)) {
                         headerDetected = true;
-                        dataRows.push(row); // Ajouter les en-têtes
+                        dataRows.push(row); // Ajouter les en-têtes comme première ligne de données
                     } else {
-                        metaRows.push(row.join(separator)); // Si ce n'est pas un en-tête valide, traiter comme métadonnée
+                        metaRows.push(row.join(separator)); // Ajouter en tant que métadonnée si l'en-tête est invalide
                     }
                 } else {
-                    // Ajouter les lignes suivantes en tant que données
+                    // Ajouter les lignes suivantes comme données
                     dataRows.push(row);
                 }
             } else {
@@ -1006,18 +1137,38 @@
             }
         }
 
-        // Affiche les métadonnées détectées
+        // Affichage des métadonnées
         displayMetadata(metaRows);
 
-        // Stocke les données CSV structurées
+        // Stocker les données CSV
         csvData = dataRows;
         originalCsvData = JSON.parse(JSON.stringify(dataRows));
 
+        // Vérifier si des données ont été trouvées
         if (dataRows.length > 0) {
-            displayTable();
-            populateColumnSelector(dataRows[0].length);
+            displayTable(); // Afficher le tableau avec les données
+            populateColumnSelector(dataRows[0].length); // Remplir le sélecteur de colonnes avec le bon nombre de colonnes
         } else {
             alert('Le fichier CSV semble vide ou mal formaté.');
+        }
+    }
+    
+    function parseCSV(csvContent) {
+        const separator = csvContent.includes(';') ? ';' : csvContent.includes('\t') ? '\t' : ',';
+
+        // Divise le contenu CSV en lignes
+        const rows = csvContent.split('\n').map(row => row.split(separator));
+
+        // Filtre les lignes vides
+        const filteredRows = rows.filter(row => row.some(cell => cell.trim() !== ''));
+
+        csvData = filteredRows;
+        originalCsvData = JSON.parse(JSON.stringify(filteredRows));
+
+        if (document.getElementById('toggle-view').checked) {
+            displayRawCSV();  // Mode brut
+        } else {
+            displayTable();  // Mode tableau
         }
     }
 
@@ -1582,10 +1733,9 @@
         applyActionToSelectedText('removeFormat'); // Supprime tous les formats appliqués au texte sélectionné
     }
 
-    // Fonction générique pour appliquer des actions au texte sélectionné
     function applyActionToSelectedText(action, value = null) {
-        if (window.getSelection().rangeCount > 0) {
-            // Exécute la commande sur la sélection actuelle
+        // Si une sélection existe
+        if (window.getSelection && window.getSelection().rangeCount > 0) {
             document.execCommand(action, false, value);
         } else {
             alert("Veuillez sélectionner du texte avant d'appliquer une action.");
