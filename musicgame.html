@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game avec Choix de Musique</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #282c34;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin: 20px;
+            font-size: 2.5rem;
+            color: #61dafb;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 80vh;
+            position: relative;
+        }
+
+        .track {
+            width: 100px;
+            height: 500px;
+            background-color: #333;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 10px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .note {
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            top: -100px;
+            left: calc(50% - 40px);
+            border-radius: 10px;
+            display: none;
+            background-color: #ff3b3b;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .hit-line {
+            position: absolute;
+            bottom: 100px;
+            width: 100%;
+            height: 10px;
+            background-color: yellow;
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        button, input {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background-color: #61dafb;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover, input:hover {
+            background-color: #21a1f1;
+            transform: translateY(-2px);
+        }
+
+        #score {
+            font-size: 1.5rem;
+            color: #61dafb;
+            margin: 5px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #message {
+            font-size: 1.3rem;
+            color: #ffeb3b;
+            margin-top: 10px;
+        }
+
+        #music-select {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rhythm Game avec Choix de Musique</h1>
+
+    <!-- Menu de sélection de musique -->
+    <div id="music-select">
+        <label for="music-source">Choisissez une source de musique :</label><br>
+        <button id="local-music-button">Charger une musique depuis l'appareil</button><br>
+        <input type="file" id="local-music" accept="audio/*" style="display:none;"><br>
+        <button id="web-music-button">Utiliser une musique par défaut depuis le web</button><br>
+        <p id="error-message" style="color: red;"></p>
+    </div>
+
+    <!-- Jeu -->
+    <div class="game-container" style="display:none;">
+        <div class="track" id="track1">
+            <div class="note" id="note1"></div>
+        </div>
+        <div class="track" id="track2">
+            <div class="note" id="note2"></div>
+        </div>
+        <div class="track" id="track3">
+            <div class="note" id="note3"></div>
+        </div>
+        <div class="track" id="track4">
+            <div class="note" id="note4"></div>
+        </div>
+        <div class="hit-line"></div>
+    </div>
+    <div class="controls" style="display:none;">
+        <button id="start-button">Start</button>
+        <p id="message"></p>
+        <p id="score">Score : 0</p>
+    </div>
+
+    <!-- Fichier MP3 local ou web -->
+    <audio id="music" preload="auto"></audio>
+
+    <script>
+        let score = 0;
+        let isPlaying = false;
+        let notes = [];
+        let music = document.getElementById('music');
+        let context, analyser, dataArray;
+        const colors = ["#ff3b3b", "#3b83ff", "#3bff3b", "#ff983b"]; // Couleurs variées
+        let localMusicLoaded = false;
+
+        // Choix de musique locale
+        document.getElementById('local-music-button').addEventListener('click', function() {
+            document.getElementById('local-music').click();
+        });
+
+        // Gestion de la musique locale
+        document.getElementById('local-music').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                music.src = fileURL;
+                localMusicLoaded = true;
+                document.getElementById('error-message').textContent = ''; // Effacer les messages d'erreur
+                showGame();
+            } else {
+                document.getElementById('error-message').textContent = "Impossible de charger le fichier.";
+            }
+        });
+
+        // Utilisation de la musique depuis le web
+        document.getElementById('web-music-button').addEventListener('click', function() {
+            music.src = "https://www.bensound.com/bensound-music/bensound-funkyenergy.mp3"; // Musique par défaut libre de droits
+            localMusicLoaded = false;
+            document.getElementById('error-message').textContent = ''; // Effacer les messages d'erreur
+            showGame();
+        });
+
+        // Afficher le jeu après la sélection de musique
+        function showGame() {
+            document.getElementById('music-select').style.display = "none";
+            document.querySelector('.game-container').style.display = "flex";
+            document.querySelector('.controls').style.display = "flex";
+        }
+
+        function startGame() {
+            if (isPlaying) return;
+            isPlaying = true;
+            score = 0;
+            document.getElementById("score").textContent = "Score : 0";
+            document.getElementById("message").textContent = "Préparation du jeu, la musique commence dans 5 secondes...";
+            document.getElementById("start-button").style.display = "none";
+
+            setTimeout(() => {
+                document.getElementById("message").textContent = "C'est parti !";
+
+                // Configurer l'API Web Audio pour synchroniser la musique avec les notes
+                context = new (window.AudioContext || window.webkitAudioContext)();
+                const source = context.createMediaElementSource(music);
+                analyser = context.createAnalyser();
+                source.connect(analyser);
+                analyser.connect(context.destination);
+                analyser.fftSize = 256;
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                // Gestion d'erreur lors de la lecture de la musique
+                music.play().catch(error => {
+                    document.getElementById('error-message').textContent = "Erreur lors de la lecture de la musique : " + error.message;
+                    isPlaying = false;
+                    document.getElementById("start-button").style.display = "block";
+                });
+
+                requestAnimationFrame(generateNotes);
+            }, 5000); // Délai de 5 secondes avant de commencer la musique et les notes
+        }
+
+        function generateNotes() {
+            if (!isPlaying) return;
+
+            analyser.getByteFrequencyData(dataArray);
+            let bass = dataArray[1]; // Fréquence basse pour détecter le battement
+
+            if (bass > 128) { // Si la basse est forte, générer une nouvelle note
+                let trackNumber = Math.ceil(Math.random() * 4); // Choisir une piste aléatoire
+                spawnNoteOnTrack(trackNumber);
+            }
+
+            requestAnimationFrame(generateNotes);
+        }
+
+        function spawnNoteOnTrack(trackNumber) {
+            const note = document.getElementById(`note${trackNumber}`);
+            const colorIndex = Math.floor(Math.random() * colors.length);
+            note.style.backgroundColor = colors[colorIndex];
+            note.style.display = "block";
+            note.style.transform = "scale(1)";
+            let notePosition = -100;
+
+            notes.push({ element: note, position: notePosition, track: trackNumber });
+
+            const moveNote = setInterval(() => {
+                notePosition += 5;
+                note.style.top = `${notePosition}px`;
+
+                if (notePosition >= 400) {
+                    clearInterval(moveNote);
+                    note.style.display = "none";
+                    notes = notes.filter(n => n.element !== note); // Supprimer la note du tableau
+                }
+            }, 20);
+        }
+
+        function handleKeyPress(event) {
+            if (!isPlaying) return;
+
+            const keyMap = {
+                'q': 1,
+                'w': 2,
+                'e': 3,
+                'r': 4
+            };
+
+            const trackNumber = keyMap[event.key];
+            if (trackNumber) {
+                const note = notes.find(n => n.track === trackNumber);
+
+                if (note) {
+                    const notePosition = parseInt(note.element.style.top, 10);
+                    if (notePosition > 380 && notePosition < 420) {
+                        score += 10;
+                        document.getElementById("score").textContent = `Score : ${score}`;
+                        note.element.style.display = "none";
+                        notes = notes.filter(n => n.element !== note); // Supprimer la note frappée
+                    }
+                }
+            }
+        }
+
+        document.getElementById("start-button").addEventListener("click", startGame);
+        window.addEventListener("keydown", handleKeyPress);
+    </script>
+</body>
+</html>
