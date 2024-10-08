@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rhythm Game avec Améliorations Complètes</title>
+    <title>Rhythm Game avec Zones Étendues et Effets Visuels</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -30,7 +30,7 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            height: 60vh;
+            height: 70vh; /* Étendre la zone pour descendre plus bas */
             width: 80vw;
             position: relative;
         }
@@ -74,13 +74,29 @@
             border-bottom: 80px solid #3bff3b;
         }
 
+        /* Lignes pour les zones de frappe */
         .hit-line {
+            position: absolute;
+            bottom: 15%;
+            width: 100%;
+            height: 10px; /* Épaisseur augmentée */
+            background-color: rgba(0, 255, 0, 0.5); /* Perfect zone in green */
+        }
+
+        .good-line {
             position: absolute;
             bottom: 10%;
             width: 100%;
-            height: 5%;
-            background-color: yellow;
-            box-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
+            height: 10px; /* Épaisseur augmentée */
+            background-color: rgba(255, 255, 0, 0.5); /* Good zone in yellow */
+        }
+
+        .bad-line {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            height: 10px; /* Épaisseur augmentée */
+            background-color: rgba(255, 0, 0, 0.5); /* Bad zone in red */
         }
 
         .controls {
@@ -163,6 +179,24 @@
             background-color: #61dafb;
         }
 
+        /* Animation des étoiles */
+        .star {
+            position: absolute;
+            font-size: 30px;
+            animation: star-grow 1s ease-out forwards;
+        }
+
+        @keyframes star-grow {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+
         #pause-menu {
             position: fixed;
             top: 0;
@@ -187,11 +221,10 @@
             font-size: 3vh;
             color: red;
         }
-
     </style>
 </head>
 <body>
-    <h1>Rhythm Game avec Améliorations Complètes</h1>
+    <h1>Rhythm Game avec Zones de Frappe et Effets Visuels</h1>
 
     <div id="feedback"></div>
     <div id="effect"></div>
@@ -218,11 +251,26 @@
 
     <!-- Jeu -->
     <div class="game-container" style="display:none;">
-        <div class="track" id="track1"></div>
-        <div class="track" id="track2"></div>
-        <div class="track" id="track3"></div>
-        <div class="track" id="track4"></div>
-        <div class="hit-line"></div>
+        <div class="track" id="track1">
+            <div class="hit-line"></div>
+            <div class="good-line"></div>
+            <div class="bad-line"></div>
+        </div>
+        <div class="track" id="track2">
+            <div class="hit-line"></div>
+            <div class="good-line"></div>
+            <div class="bad-line"></div>
+        </div>
+        <div class="track" id="track3">
+            <div class="hit-line"></div>
+            <div class="good-line"></div>
+            <div class="bad-line"></div>
+        </div>
+        <div class="track" id="track4">
+            <div class="hit-line"></div>
+            <div class="good-line"></div>
+            <div class="bad-line"></div>
+        </div>
     </div>
 
     <div class="controls" style="display:none;">
@@ -351,7 +399,7 @@
                     notePosition += slowMotionActive ? 0.5 : 1;
                     note.style.top = `${notePosition}%`;
 
-                    if (notePosition >= 85) {
+                    if (notePosition >= 90) {
                         clearInterval(moveNote);
                         track.removeChild(note);
                         notes = notes.filter(n => n.element !== note);
@@ -403,28 +451,35 @@
                 const notePosition = parseInt(note.element.style.top, 10);
                 let feedback = '';
 
-                if (notePosition > 81 && notePosition <= 82) {
+                const noteBottom = notePosition + 15; // Prendre en compte la taille de la note (15%)
+                
+                // Gestion des frappes en fonction de la zone de frappe
+                if (noteBottom >= 80 && notePosition <= 83) { 
                     feedback = 'Perfect+!';
                     score += 100 * multiplier;
                     combo += 1;
+                    createStar('blue', combo);
                     triggerEffect('perfect');
                     vibrate();
-                } else if (notePosition > 80 && notePosition <= 83) {
+                } else if (noteBottom >= 78 && notePosition <= 85) {
                     feedback = 'Perfect!';
                     score += 50 * multiplier;
                     combo += 1;
+                    createStar('blue', combo);
                     triggerEffect('good');
                     vibrate();
-                } else if (notePosition > 83 && notePosition <= 86) {
+                } else if (noteBottom >= 75 && notePosition <= 88) {
                     feedback = 'Good!';
                     score += 30 * multiplier;
                     combo += 1;
+                    createStar('yellow', combo);
                     triggerEffect('good');
                     vibrate();
-                } else if (notePosition > 86 && notePosition <= 90) {
+                } else if (noteBottom >= 70 && notePosition <= 90) {
                     feedback = 'Bad!';
                     score += 10 * multiplier;
                     combo += 1;
+                    createStar('red', combo);
                     triggerEffect('bad');
                 } else {
                     feedback = 'Miss!';
@@ -443,6 +498,20 @@
                     notes = notes.filter(n => n !== note);
                 }
             }
+        }
+
+        function createStar(color, combo) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            star.textContent = `⭐ Combo: ${combo}`;
+            star.style.color = color;
+            star.style.left = `${Math.random() * 90}%`; // Positionner aléatoirement
+            star.style.top = `${Math.random() * 50}%`; 
+            document.getElementById('effect').appendChild(star);
+
+            setTimeout(() => {
+                star.remove();
+            }, 1000); // Supprimer après 1 seconde
         }
 
         function updateMultiplier() {
