@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rhythm Game avec Choix de Musique</title>
+    <title>Rhythm Game avec Améliorations Complètes</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
             background-color: #282c34;
             color: white;
-            text-align: center;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
         }
 
         h1 {
             margin: 20px;
-            font-size: 2.5rem;
+            font-size: 4vw;
             color: #61dafb;
             text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
         }
@@ -26,13 +30,14 @@
             display: flex;
             justify-content: center;
             align-items: flex-start;
-            height: 80vh;
+            height: 60vh;
+            width: 80vw;
             position: relative;
         }
 
         .track {
-            width: 100px;
-            height: 500px;
+            width: 20vw;
+            height: 100%;
             background-color: #333;
             border-radius: 10px;
             position: relative;
@@ -42,23 +47,38 @@
         }
 
         .note {
-            width: 80px;
-            height: 80px;
+            width: 80%;
+            height: 15%;
             position: absolute;
-            top: -100px;
-            left: calc(50% - 40px);
+            top: -15%;
+            left: 10%;
             border-radius: 10px;
-            display: none;
             background-color: #ff3b3b;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-            transition: transform 0.3s ease;
+        }
+
+        .note.square {
+            background-color: #ff3b3b;
+        }
+
+        .note.circle {
+            border-radius: 50%;
+            background-color: #3b83ff;
+        }
+
+        .note.triangle {
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 80px solid #3bff3b;
         }
 
         .hit-line {
             position: absolute;
-            bottom: 100px;
+            bottom: 10%;
             width: 100%;
-            height: 10px;
+            height: 5%;
             background-color: yellow;
             box-shadow: 0 0 10px rgba(255, 255, 0, 0.7);
         }
@@ -67,17 +87,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            margin-top: 2vh;
         }
 
         button, input {
-            padding: 10px 20px;
-            font-size: 1.2rem;
+            padding: 1vh 2vw;
+            font-size: 1.5vh;
             background-color: #61dafb;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-bottom: 10px;
+            margin-bottom: 1vh;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
@@ -87,26 +107,105 @@
             transform: translateY(-2px);
         }
 
-        #score {
-            font-size: 1.5rem;
+        #score, #combo, #multiplier {
+            font-size: 3vh;
             color: #61dafb;
             margin: 5px;
             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
         }
 
-        #message {
-            font-size: 1.3rem;
-            color: #ffeb3b;
-            margin-top: 10px;
+        #feedback {
+            font-size: 4vh;
+            color: #fff;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
         }
 
-        #music-select {
-            margin-bottom: 20px;
+        #effect {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 999;
         }
+
+        #effect div {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            animation: explode 1s forwards ease-out;
+            opacity: 0;
+        }
+
+        @keyframes explode {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(5); }
+        }
+
+        #progress-bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 10px;
+            background-color: #333;
+        }
+
+        #progress {
+            width: 0;
+            height: 100%;
+            background-color: #61dafb;
+        }
+
+        #pause-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            display: none;
+        }
+
+        #pause-menu button {
+            margin: 10px;
+            padding: 15px;
+            font-size: 2vh;
+        }
+
+        #lives {
+            font-size: 3vh;
+            color: red;
+        }
+
     </style>
 </head>
 <body>
-    <h1>Rhythm Game avec Choix de Musique</h1>
+    <h1>Rhythm Game avec Améliorations Complètes</h1>
+
+    <div id="feedback"></div>
+    <div id="effect"></div>
+
+    <!-- Affichage des combos, du score, du multiplicateur, et des vies -->
+    <div id="score">Score : 0</div>
+    <div id="combo">Combo : 0</div>
+    <div id="multiplier">Multiplicateur : x1</div>
+    <div id="lives">Vies : 3</div>
+
+    <!-- Barre de progression musicale -->
+    <div id="progress-bar">
+        <div id="progress"></div>
+    </div>
 
     <!-- Menu de sélection de musique -->
     <div id="music-select">
@@ -119,66 +218,79 @@
 
     <!-- Jeu -->
     <div class="game-container" style="display:none;">
-        <div class="track" id="track1">
-            <div class="note" id="note1"></div>
-        </div>
-        <div class="track" id="track2">
-            <div class="note" id="note2"></div>
-        </div>
-        <div class="track" id="track3">
-            <div class="note" id="note3"></div>
-        </div>
-        <div class="track" id="track4">
-            <div class="note" id="note4"></div>
-        </div>
+        <div class="track" id="track1"></div>
+        <div class="track" id="track2"></div>
+        <div class="track" id="track3"></div>
+        <div class="track" id="track4"></div>
         <div class="hit-line"></div>
     </div>
+
     <div class="controls" style="display:none;">
         <button id="start-button">Start</button>
+        <button id="pause-button">Pause</button>
+        <button id="slow-motion-button">Ralenti</button>
         <p id="message"></p>
-        <p id="score">Score : 0</p>
     </div>
 
-    <!-- Fichier MP3 local ou web -->
+    <!-- Menu de pause -->
+    <div id="pause-menu">
+        <button id="resume-button">Reprendre</button>
+        <button id="restart-button">Réinitialiser</button>
+        <select id="difficulty-select">
+            <option value="1">Facile</option>
+            <option value="2">Normal</option>
+            <option value="3">Medium</option>
+            <option value="4">Difficile</option>
+            <option value="5">Expert</option>
+        </select>
+    </div>
+
     <audio id="music" preload="auto"></audio>
 
     <script>
         let score = 0;
+        let combo = 0;
+        let multiplier = 1;
+        let lives = 3;
         let isPlaying = false;
+        let isPaused = false;
         let notes = [];
+        let slowMotionActive = false;
+        let slowMotionTimeout;
         let music = document.getElementById('music');
         let context, analyser, dataArray;
-        const colors = ["#ff3b3b", "#3b83ff", "#3bff3b", "#ff983b"]; // Couleurs variées
+        const colors = ["#ff3b3b", "#3b83ff", "#3bff3b", "#ff983b"];
+        const shapes = ["square", "circle", "triangle"]; // Formes géométriques variées
         let localMusicLoaded = false;
+        let noteInterval;
+        let difficulty = 2; // Valeur par défaut (Normal)
+        let noteSpeed = 20; // Vitesse par défaut des notes
 
         // Choix de musique locale
         document.getElementById('local-music-button').addEventListener('click', function() {
             document.getElementById('local-music').click();
         });
 
-        // Gestion de la musique locale
         document.getElementById('local-music').addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (file) {
                 const fileURL = URL.createObjectURL(file);
                 music.src = fileURL;
                 localMusicLoaded = true;
-                document.getElementById('error-message').textContent = ''; // Effacer les messages d'erreur
+                document.getElementById('error-message').textContent = ''; 
                 showGame();
             } else {
                 document.getElementById('error-message').textContent = "Impossible de charger le fichier.";
             }
         });
 
-        // Utilisation de la musique depuis le web
         document.getElementById('web-music-button').addEventListener('click', function() {
-            music.src = "https://www.bensound.com/bensound-music/bensound-funkyenergy.mp3"; // Musique par défaut libre de droits
+            music.src = "https://www.bensound.com/bensound-music/bensound-funkyenergy.mp3";
             localMusicLoaded = false;
-            document.getElementById('error-message').textContent = ''; // Effacer les messages d'erreur
+            document.getElementById('error-message').textContent = ''; 
             showGame();
         });
 
-        // Afficher le jeu après la sélection de musique
         function showGame() {
             document.getElementById('music-select').style.display = "none";
             document.querySelector('.game-container').style.display = "flex";
@@ -189,14 +301,19 @@
             if (isPlaying) return;
             isPlaying = true;
             score = 0;
+            combo = 0;
+            multiplier = 1;
+            lives = 3;
             document.getElementById("score").textContent = "Score : 0";
-            document.getElementById("message").textContent = "Préparation du jeu, la musique commence dans 5 secondes...";
-            document.getElementById("start-button").style.display = "none";
+            document.getElementById("combo").textContent = "Combo : 0";
+            document.getElementById("multiplier").textContent = "Multiplicateur : x1";
+            document.getElementById("lives").textContent = "Vies : 3";
+            document.getElementById("message").textContent = "La musique commence...";
 
-            setTimeout(() => {
+            setDifficulty(); // Appliquer la difficulté sélectionnée
+
+            music.play().then(() => {
                 document.getElementById("message").textContent = "C'est parti !";
-
-                // Configurer l'API Web Audio pour synchroniser la musique avec les notes
                 context = new (window.AudioContext || window.webkitAudioContext)();
                 const source = context.createMediaElementSource(music);
                 analyser = context.createAnalyser();
@@ -205,81 +322,241 @@
                 analyser.fftSize = 256;
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-                // Gestion d'erreur lors de la lecture de la musique
-                music.play().catch(error => {
-                    document.getElementById('error-message').textContent = "Erreur lors de la lecture de la musique : " + error.message;
-                    isPlaying = false;
-                    document.getElementById("start-button").style.display = "block";
-                });
-
-                requestAnimationFrame(generateNotes);
-            }, 5000); // Délai de 5 secondes avant de commencer la musique et les notes
+                noteInterval = setInterval(generateNotes, 1000); // Générer des notes toutes les secondes
+                requestAnimationFrame(updateGame);
+            }).catch(error => {
+                document.getElementById('error-message').textContent = "Erreur lors de la lecture de la musique : " + error.message;
+                isPlaying = false;
+            });
         }
 
         function generateNotes() {
-            if (!isPlaying) return;
-
-            analyser.getByteFrequencyData(dataArray);
-            let bass = dataArray[1]; // Fréquence basse pour détecter le battement
-
-            if (bass > 128) { // Si la basse est forte, générer une nouvelle note
-                let trackNumber = Math.ceil(Math.random() * 4); // Choisir une piste aléatoire
-                spawnNoteOnTrack(trackNumber);
-            }
-
-            requestAnimationFrame(generateNotes);
+            let trackNumber = Math.ceil(Math.random() * 4);
+            spawnNoteOnTrack(trackNumber);
         }
 
         function spawnNoteOnTrack(trackNumber) {
-            const note = document.getElementById(`note${trackNumber}`);
+            const track = document.getElementById(`track${trackNumber}`);
+            const note = document.createElement('div');
+            const randomShape = shapes[Math.floor(Math.random() * shapes.length)]; // Forme aléatoire
+            note.classList.add('note', randomShape); // Associer la forme
             const colorIndex = Math.floor(Math.random() * colors.length);
             note.style.backgroundColor = colors[colorIndex];
-            note.style.display = "block";
-            note.style.transform = "scale(1)";
-            let notePosition = -100;
+            track.appendChild(note);
 
-            notes.push({ element: note, position: notePosition, track: trackNumber });
+            let notePosition = -15;
 
             const moveNote = setInterval(() => {
-                notePosition += 5;
-                note.style.top = `${notePosition}px`;
+                if (!isPaused) {
+                    notePosition += slowMotionActive ? 0.5 : 1;
+                    note.style.top = `${notePosition}%`;
 
-                if (notePosition >= 400) {
-                    clearInterval(moveNote);
-                    note.style.display = "none";
-                    notes = notes.filter(n => n.element !== note); // Supprimer la note du tableau
+                    if (notePosition >= 85) {
+                        clearInterval(moveNote);
+                        track.removeChild(note);
+                        notes = notes.filter(n => n.element !== note);
+                        loseLife();
+                    }
                 }
-            }, 20);
+            }, noteSpeed); // Ajuster la vitesse en fonction de la difficulté
+
+            notes.push({ element: note, position: notePosition, track: trackNumber, moveNote });
         }
 
-        function handleKeyPress(event) {
-            if (!isPlaying) return;
+        function loseLife() {
+            lives -= 1;
+            document.getElementById("lives").textContent = `Vies : ${lives}`;
+            if (lives === 0) {
+                gameOver();
+            }
+        }
 
+        function resetCombo() {
+            combo = 0;
+            multiplier = 1;
+            document.getElementById("combo").textContent = "Combo : 0";
+            document.getElementById("multiplier").textContent = "Multiplicateur : x1";
+        }
+
+        // Gestion des frappes par interaction tactile et clavier
+        document.querySelectorAll('.track').forEach((track, index) => {
+            track.addEventListener('click', () => handleTrackPress(index + 1));
+        });
+
+        window.addEventListener('keydown', handleKeyPress);
+
+        function handleKeyPress(event) {
             const keyMap = {
                 'q': 1,
                 'w': 2,
                 'e': 3,
                 'r': 4
             };
+            const trackNumber = keyMap[event.key.toLowerCase()];
+            if (trackNumber) handleTrackPress(trackNumber);
+        }
 
-            const trackNumber = keyMap[event.key];
-            if (trackNumber) {
-                const note = notes.find(n => n.track === trackNumber);
+        function handleTrackPress(trackNumber) {
+            const note = notes.find(n => n.track === trackNumber);
 
-                if (note) {
-                    const notePosition = parseInt(note.element.style.top, 10);
-                    if (notePosition > 380 && notePosition < 420) {
-                        score += 10;
-                        document.getElementById("score").textContent = `Score : ${score}`;
-                        note.element.style.display = "none";
-                        notes = notes.filter(n => n.element !== note); // Supprimer la note frappée
-                    }
+            if (note) {
+                const notePosition = parseInt(note.element.style.top, 10);
+                let feedback = '';
+
+                if (notePosition > 81 && notePosition <= 82) {
+                    feedback = 'Perfect+!';
+                    score += 100 * multiplier;
+                    combo += 1;
+                    triggerEffect('perfect');
+                    vibrate();
+                } else if (notePosition > 80 && notePosition <= 83) {
+                    feedback = 'Perfect!';
+                    score += 50 * multiplier;
+                    combo += 1;
+                    triggerEffect('good');
+                    vibrate();
+                } else if (notePosition > 83 && notePosition <= 86) {
+                    feedback = 'Good!';
+                    score += 30 * multiplier;
+                    combo += 1;
+                    triggerEffect('good');
+                    vibrate();
+                } else if (notePosition > 86 && notePosition <= 90) {
+                    feedback = 'Bad!';
+                    score += 10 * multiplier;
+                    combo += 1;
+                    triggerEffect('bad');
+                } else {
+                    feedback = 'Miss!';
+                    resetCombo();
+                    triggerEffect('miss');
+                }
+
+                updateMultiplier();
+                displayFeedback(feedback);
+                document.getElementById("score").textContent = `Score : ${score}`;
+                document.getElementById("combo").textContent = `Combo : ${combo}`;
+
+                if (feedback !== 'Miss!') {
+                    clearInterval(note.moveNote);
+                    note.element.remove();
+                    notes = notes.filter(n => n !== note);
                 }
             }
         }
 
+        function updateMultiplier() {
+            if (combo > 0 && combo % 10 === 0) {
+                multiplier += 1;
+            }
+            document.getElementById("multiplier").textContent = `Multiplicateur : x${multiplier}`;
+        }
+
+        function displayFeedback(feedback) {
+            const feedbackElement = document.getElementById('feedback');
+            feedbackElement.textContent = feedback;
+            feedbackElement.style.display = 'block';
+
+            setTimeout(() => {
+                feedbackElement.style.display = 'none';
+            }, 1000);
+        }
+
+        function triggerEffect(type) {
+            const effectContainer = document.getElementById('effect');
+            const effect = document.createElement('div');
+
+            switch (type) {
+                case 'perfect':
+                    effect.style.backgroundColor = '#00ff00';
+                    break;
+                case 'good':
+                    effect.style.backgroundColor = '#ffff00';
+                    break;
+                case 'bad':
+                    effect.style.backgroundColor = '#ff9900';
+                    break;
+                case 'miss':
+                    effect.style.backgroundColor = '#ff0000';
+                    break;
+            }
+
+            const xPos = Math.random() * window.innerWidth;
+            const yPos = Math.random() * window.innerHeight;
+
+            effect.style.left = `${xPos}px`;
+            effect.style.top = `${yPos}px`;
+
+            effectContainer.appendChild(effect);
+
+            setTimeout(() => {
+                effect.remove();
+            }, 1000);
+        }
+
+        function vibrate() {
+            if (navigator.vibrate) {
+                navigator.vibrate(100); // Vibration de 100 ms
+            }
+        }
+
+        function gameOver() {
+            alert("Partie terminée !");
+            window.location.reload(); // Réinitialiser le jeu
+        }
+
+        // Mode ralenti temporaire
+        document.getElementById('slow-motion-button').addEventListener('click', () => {
+            if (!slowMotionActive) {
+                slowMotionActive = true;
+                clearTimeout(slowMotionTimeout);
+                slowMotionTimeout = setTimeout(() => {
+                    slowMotionActive = false;
+                }, 5000); // Le mode ralenti dure 5 secondes
+            }
+        });
+
+        function setDifficulty() {
+            difficulty = parseInt(document.getElementById("difficulty-select").value);
+
+            switch (difficulty) {
+                case 1: // Facile
+                    noteSpeed = 30;
+                    break;
+                case 2: // Normal
+                    noteSpeed = 20;
+                    break;
+                case 3: // Medium
+                    noteSpeed = 15;
+                    break;
+                case 4: // Difficile
+                    noteSpeed = 10;
+                    break;
+                case 5: // Expert
+                    noteSpeed = 5;
+                    break;
+                default:
+                    noteSpeed = 20;
+            }
+        }
+
+        document.getElementById("pause-button").addEventListener("click", () => {
+            isPaused = true;
+            document.getElementById("pause-menu").style.display = "flex";
+            music.pause();
+        });
+
+        document.getElementById("resume-button").addEventListener("click", () => {
+            isPaused = false;
+            document.getElementById("pause-menu").style.display = "none";
+            music.play();
+        });
+
+        document.getElementById("restart-button").addEventListener("click", () => {
+            window.location.reload(); // Réinitialiser le jeu
+        });
+
         document.getElementById("start-button").addEventListener("click", startGame);
-        window.addEventListener("keydown", handleKeyPress);
     </script>
 </body>
 </html>
