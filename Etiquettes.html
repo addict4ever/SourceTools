@@ -136,6 +136,21 @@
       left: -20px;
       transform: scale(2);
     }
+    .etiquette.locked {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .cadenas {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      cursor: pointer;
+      font-size: 18px;
+      background: none;
+      border: none;
+    }
+    
     footer {
       text-align: center;
       margin-top: 20px;
@@ -181,6 +196,10 @@
       /* Transformer les menus déroulants en texte brut */
       .etiquette select {
         display: none;
+      }
+      .etiquette {
+        border: none; /* Supprime le cadre bleu */
+        background: none;
       }
 
       /* Ajouter un span temporaire pour afficher la valeur du menu déroulant */
@@ -228,8 +247,10 @@
   </style>
 </head>
 <body>
-  <!-- Menu Flottant -->
-
+  <div class="menu-flottant">
+    <button id="lock-toggle">🔒 Verrouiller</button>
+    <button onclick="printLabels()">Imprimer les étiquettes</button>
+  </div>
   <!-- Menu Flottant -->
   <div class="menu-flottant" id="menu-flottant">
     <h1>Test Etiquettes</h1>
@@ -271,6 +292,7 @@
   <!-- 5 Étiquettes par défaut -->
   <div class="page" id="page">
       <div class="etiquette" data-id="1" style="top: 24mm; left: 80mm;">
+        <button class="cadenas" onclick="toggleLock(this)">🔒</button>
         <input type="checkbox">
         <input type="text" placeholder="Ligne 1" class="ligne-1">
         <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
@@ -312,6 +334,10 @@
     let lastAction = null;
     let currentEtiquette = null;
     let isMovable = false;
+    let isLocked = true; // Déplacement désactivé par défaut
+    const lockToggle = document.getElementById('lock-toggle');
+    const contextMenu = document.getElementById('menu-contextuel');
+  
     const options = [
       "Amortissement",
       "FPA",
@@ -406,8 +432,26 @@
       }
     }
 
+    function toggleLock(button) {
+      const etiquette = button.parentElement;
+      if (etiquette.classList.contains('locked')) {
+        etiquette.classList.remove('locked');
+        button.textContent = '🔓';
+      } else {
+        etiquette.classList.add('locked');
+        button.textContent = '🔒';
+      }
+    }
+
+
+    function closeContextMenu() {
+      contextMenu.style.display = 'none';
+    }
+
+    
+
     document.addEventListener('mousedown', e => {
-      if (e.target.closest('.etiquette')) {
+      if (e.target.closest('.etiquette') && !e.target.closest('.etiquette').classList.contains('locked')) {
         drag = e.target.closest('.etiquette');
         drag.dataset.startX = e.clientX;
         drag.dataset.startY = e.clientY;
@@ -422,11 +466,16 @@
         const deltaY = e.clientY - drag.dataset.startY;
         drag.style.top = `${parseInt(drag.dataset.offsetTop) + deltaY}px`;
         drag.style.left = `${parseInt(drag.dataset.offsetLeft) + deltaX}px`;
-
-        document.getElementById('top').value = parseInt(drag.style.top);
-        document.getElementById('left').value = parseInt(drag.style.left);
       }
     });
+    
+    document.getElementById('lock-toggle').addEventListener('click', function () {
+      isLocked = !isLocked;
+      this.textContent = isLocked ? '🔒 Verrouiller' : '🔓 Déverrouiller';
+    });
+
+    
+    
 
     document.addEventListener('mouseup', () => (drag = null));
 
