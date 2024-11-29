@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Étiquettes - Ordi Gesco</title>
+  <style>
+    /* Styles généraux */
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    .menu-flottant {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      background: #0056b3;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+    .menu-flottant h1 {
+      flex-basis: 100%;
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: white;
+    }
+    .menu-flottant section {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .menu-flottant label,
+    .menu-flottant input,
+    .menu-flottant select,
+    .menu-flottant button {
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    .menu-flottant input[type="radio"] {
+      margin-right: 5px;
+    }
+    .menu-flottant input,
+    .menu-flottant select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    .menu-flottant button {
+      background: #003d7a;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .menu-flottant button:hover {
+      background: #002a54;
+    }
+    .page {
+      width: 216mm;
+      height: 279mm;
+      border: 1px solid #ddd;
+      margin: 120px auto 0;
+      position: relative;
+      background: #f9f9f9;
+    }
+    .grille {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+      background-size: 10mm 10mm;
+      z-index: -1;
+      pointer-events: none;
+    }
+    .etiquette {
+      width: 100mm;
+      height: 30mm;
+      position: absolute;
+      border: 1px dashed #0056b3;
+      background: #fff;
+      padding: 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    /* Style spécifique pour chaque ligne */
+    .etiquette .ligne-1 {
+      font-size: 18px;
+      font-style: italic;  /* Applique l'italique */
+      font-weight: bold;   /* Applique le gras */
+      width: 90%;
+      margin-bottom: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .etiquette .ligne-2 {
+      font-size: 16px;
+      width: 90%;
+      margin-bottom: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .etiquette .ligne-3 {
+      font-size: 16px;
+      width: 90%;
+      margin-bottom: 5px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* Masquer les cases à cocher */
+    .etiquette input[type="checkbox"] {
+      position: absolute;
+      top: -20px;
+      left: -20px;
+      transform: scale(2);
+    }
+    footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #777;
+    }
+    .menu-contextuel button {
+      background: #0056b3;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .menu-contextuel button:hover {
+      background: #003d7a;
+    }
+    @media print {
+      /* Cacher tous les éléments sauf la page des étiquettes */
+      body * {
+        visibility: hidden;
+      }
+
+      /* Rendre visibles uniquement les étiquettes sur la page */
+      .page, .page * {
+        visibility: visible;
+      }
+
+      /* Supprimer les styles inutiles pour les champs de texte */
+      .etiquette input[type="text"],
+      .etiquette select {
+        outline: none;       /* Supprime le contour */
+        border: none;        /* Supprime les bordures */
+        background: none;    /* Supprime l'arrière-plan */
+        font-size: inherit;  /* Applique la taille de police définie */
+        font-style: inherit; /* Applique le style de police défini */
+        font-weight: inherit; /* Applique l'épaisseur de police définie */
+        color: inherit;      /* Applique la couleur définie */
+        width: auto;         /* Adapte la largeur au contenu */
+      }
+
+      /* Transformer les menus déroulants en texte brut */
+      .etiquette select {
+        display: none;
+      }
+
+      /* Ajouter un span temporaire pour afficher la valeur du menu déroulant */
+      .etiquette select::after {
+        content: attr(data-value);
+        display: inline-block;
+        visibility: visible;
+        font-size: inherit;
+        font-weight: inherit;
+        font-style: inherit;
+        color: inherit;
+      }
+
+      /* Cacher les cases à cocher */
+      .etiquette input[type="checkbox"] {
+        display: none;
+      }
+
+      /* Cacher le menu flottant, les boutons, etc. */
+      footer, .menu-flottant, .menu-contextuel {
+        display: none;
+      }
+
+      /* Ajuster la mise en page pour l'impression */
+      .page {
+        margin: 0;
+        padding: 0;
+        border: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;  /* Prend toute la largeur */
+        height: auto; /* Ajuste la hauteur en fonction du contenu */
+      }
+    }
+    
+    .option-class {
+    width: 90%;
+    padding: 5px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 5px;
+  }
+  </style>
+</head>
+<body>
+  <!-- Menu Flottant -->
+
+  <!-- Menu Flottant -->
+  <div class="menu-flottant" id="menu-flottant">
+    <h1>Test Etiquettes</h1>
+    <section>
+      <label for="width">Largeur :</label>
+      <input type="number" id="width" value="100" min="50" max="200">
+      <label for="height">Hauteur :</label>
+      <input type="number" id="height" value="30" min="20" max="100">
+      <label for="font-size">Police :</label>
+      <input type="number" id="font-size" value="14" min="8" max="24">
+    </section>
+    <section>
+      <label for="top">Vertical :</label>
+      <input type="number" id="top" min="0" max="279">
+      <label for="left">Horizontal :</label>
+      <input type="number" id="left" min="0" max="216">
+      <button onclick="applyPosition()">Appliquer</button>
+    </section>
+    <section>
+      <label for="grille">Grille :</label>
+      <input type="radio" id="grille-on" name="grille" checked onclick="toggleGrille(true)"> Activée
+      <input type="radio" id="grille-off" name="grille" onclick="toggleGrille(false)"> Désactivée
+    </section>
+    <section>
+      <button onclick="undoAction()">Annuler</button>
+      <button onclick="saveLabels()">Sauvegarder</button>
+      <button onclick="loadLabels()">Charger</button>
+      <button onclick="resetPositions()">Réinitialiser</button>
+      <button onclick="printLabels()">Imprimer</button>
+    </section>
+  </div>
+
+  <!-- Menu Contextuel -->
+  <div class="menu-contextuel" id="menu-contextuel">
+    <button onclick="enableMove()">Activer Déplacement</button>
+    <button onclick="disableMove()">Désactiver Déplacement</button>
+  </div>
+
+  <!-- 5 Étiquettes par défaut -->
+  <div class="page" id="page">
+      <div class="etiquette" data-id="1" style="top: 24mm; left: 80mm;">
+        <input type="checkbox">
+        <input type="text" placeholder="Ligne 1" class="ligne-1">
+        <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
+        <input type="text" placeholder="Ligne 3" class="ligne-3">
+      </div>
+      <!-- Répété pour les autres étiquettes sans duplication excessive -->
+      <div class="etiquette" data-id="2" style="top: 74mm; left: 80mm;">
+        <input type="checkbox">
+        <input type="text" placeholder="Ligne 1" class="ligne-1">
+        <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
+        <input type="text" placeholder="Ligne 3" class="ligne-3">
+      </div>
+      <div class="etiquette" data-id="3" style="top: 129mm; left: 80mm;">
+        <input type="checkbox">
+        <input type="text" placeholder="Ligne 1" class="ligne-1">
+        <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
+        <input type="text" placeholder="Ligne 3" class="ligne-3">
+      </div>
+      <div class="etiquette" data-id="4" style="top: 183mm; left: 80mm;">
+        <input type="checkbox">
+        <input type="text" placeholder="Ligne 1" class="ligne-1">
+        <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
+        <input type="text" placeholder="Ligne 3" class="ligne-3">
+      </div>
+      <div class="etiquette" data-id="5" style="top: 224mm; left: 80mm;">
+        <input type="checkbox">
+        <input type="text" placeholder="Ligne 1" class="ligne-1">
+        <select class="ligne-2 option-class" onchange="handleSelectChange(this)"></select>
+        <input type="text" placeholder="Ligne 3" class="ligne-3">
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    © 2024 Ordi Gesco - Gestion des Étiquettes
+  </footer>
+
+  <script>
+    let lastAction = null;
+    let currentEtiquette = null;
+    let isMovable = false;
+    const options = [
+      "Amortissement",
+      "FPA",
+      "Avis",
+      "Cotisation",
+      "Comité Paritaire",
+      "Compte à payer",
+      "Conciliation bancaire",
+      "Dépôt",
+      "Dépôt Chase",
+      "Divers",
+      "États financiers mensuels",
+      "Fin d'année",
+      "NEW",
+      "Paie",
+      "TPS - TVQ",
+      "Personnalisé"
+    ];
+
+    // Mise à jour dynamique de la position
+    let drag = null;
+
+    function prepareForPrint() {
+      const dropdowns = document.querySelectorAll('.ligne-2');
+      backupDropdowns = []; // Sauvegarder l'état des menus déroulants
+
+      dropdowns.forEach(selectElement => {
+        updateDropdownValue(selectElement);
+        const value = selectElement.getAttribute('data-value');
+        const span = document.createElement('span');
+        span.textContent = value;
+        span.style.fontSize = '16px';
+        span.style.marginBottom = '5px';
+
+        // Sauvegarder le menu déroulant
+        backupDropdowns.push({ selectElement, parent: selectElement.parentElement });
+
+        // Remplacer le menu déroulant par un span
+        selectElement.parentElement.replaceChild(span, selectElement);
+      });
+    }
+
+    function restoreDropdowns() {
+      backupDropdowns.forEach(({ selectElement, parent }) => {
+        const span = parent.querySelector('span');
+        if (span) {
+          parent.replaceChild(selectElement, span); // Restaurer le menu déroulant
+        }
+      });
+      backupDropdowns = []; // Réinitialiser après restauration
+    }
+
+    window.onbeforeprint = prepareForPrint;
+
+
+    function initializeDropdowns() {
+      const dropdowns = document.querySelectorAll(".ligne-2");
+      dropdowns.forEach(dropdown => {
+        options.forEach(option => {
+          const opt = document.createElement("option");
+          opt.value = option;
+          opt.textContent = option;
+          dropdown.appendChild(opt);
+        });
+      });
+    }
+
+    function handleSelectChange(selectElement) {
+      if (selectElement.value === "Personnalisé") {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.placeholder = "Personnalisé";
+        input.className = selectElement.className;
+        selectElement.parentNode.replaceChild(input, selectElement);
+      }
+    }
+
+    // Initialiser les dropdowns au chargement
+    document.addEventListener("DOMContentLoaded", initializeDropdowns);
+
+    function applyPosition() {
+      const top = document.getElementById('top').value;
+      const left = document.getElementById('left').value;
+      const selected = document.querySelector('.etiquette input[type="checkbox"]:checked');
+      if (selected) {
+        const etiquette = selected.parentElement;
+        lastAction = { etiquette, prev: { top: etiquette.style.top, left: etiquette.style.left } };
+        etiquette.style.top = `${top}mm`;
+        etiquette.style.left = `${left}mm`;
+      } else {
+        alert('Veuillez sélectionner une étiquette.');
+      }
+    }
+
+    document.addEventListener('mousedown', e => {
+      if (e.target.closest('.etiquette')) {
+        drag = e.target.closest('.etiquette');
+        drag.dataset.startX = e.clientX;
+        drag.dataset.startY = e.clientY;
+        drag.dataset.offsetTop = parseInt(drag.style.top) || 0;
+        drag.dataset.offsetLeft = parseInt(drag.style.left) || 0;
+      }
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (drag) {
+        const deltaX = e.clientX - drag.dataset.startX;
+        const deltaY = e.clientY - drag.dataset.startY;
+        drag.style.top = `${parseInt(drag.dataset.offsetTop) + deltaY}px`;
+        drag.style.left = `${parseInt(drag.dataset.offsetLeft) + deltaX}px`;
+
+        document.getElementById('top').value = parseInt(drag.style.top);
+        document.getElementById('left').value = parseInt(drag.style.left);
+      }
+    });
+
+    document.addEventListener('mouseup', () => (drag = null));
+
+    function toggleGrille(active) {
+      document.querySelector('.grille').style.display = active ? 'block' : 'none';
+    }
+
+    function resetPositions() {
+      document.querySelectorAll('.etiquette').forEach((etiquette, index) => {
+        etiquette.style.top = `${30 + index * 50}mm`;
+        etiquette.style.left = '80mm';
+      });
+    }
+
+    function saveLabels() {
+      const etiquettes = [...document.querySelectorAll('.etiquette')].map(etiquette => ({
+        id: etiquette.dataset.id,
+        top: etiquette.style.top,
+        left: etiquette.style.left,
+        text: [...etiquette.querySelectorAll('input[type="text"]')].map(input => input.value)
+      }));
+      const blob = new Blob([JSON.stringify(etiquettes)], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'etiquettes.json';
+      link.click();
+    }
+
+    function loadLabels() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json';
+      input.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const data = JSON.parse(reader.result);
+            data.forEach(item => {
+              const etiquette = document.querySelector(`.etiquette[data-id="${item.id}"]`) || addEtiquette();
+              etiquette.dataset.id = item.id;
+              etiquette.style.top = item.top;
+              etiquette.style.left = item.left;
+              [...etiquette.querySelectorAll('input[type="text"]')].forEach((input, i) => {
+                input.value = item.text[i] || '';
+              });
+            });
+          };
+          reader.readAsText(file);
+        }
+      });
+      input.click();
+    }
+
+    function undoAction() {
+      if (lastAction) {
+        const { etiquette, prev } = lastAction;
+        etiquette.style.top = prev.top;
+        etiquette.style.left = prev.left;
+      }
+    }
+    function updateDropdownValue(selectElement) {
+      const selectedValue = selectElement.options[selectElement.selectedIndex].textContent;
+      selectElement.setAttribute('data-value', selectedValue);
+    }
+
+
+    function printLabels() {
+
+      const etiquettes = document.querySelectorAll('.etiquette');
+      etiquettes.forEach(etiquette => {
+        if (!etiquette.querySelector('input[type="checkbox"]').checked) {
+          etiquette.style.display = 'none';
+        }
+      });
+      prepareForPrint(); // Assurez-vous que les menus déroulants sont prêts
+
+      window.print();
+      restoreDropdowns();
+
+      etiquettes.forEach(etiquette => {
+        etiquette.style.display = 'block';
+      });
+    }
+    window.addEventListener('afterprint', restoreDropdowns); // Assurez la restauration après impression
+  </script>
+</body>
+</html>
